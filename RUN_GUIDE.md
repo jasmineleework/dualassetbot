@@ -21,7 +21,22 @@ uvicorn api.main:app --reload
 INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 ```
 
-### 2. 验证服务器运行
+### 2. 启动前端应用
+
+**方法一：使用启动脚本（推荐）**
+```bash
+./start_frontend.sh
+```
+
+**方法二：手动启动**
+```bash
+cd src/main/webapp
+PORT=3001 npm start
+```
+
+前端将在 http://localhost:3001 运行
+
+### 3. 验证服务器运行
 
 打开新的终端窗口，运行：
 ```bash
@@ -32,7 +47,7 @@ python quick_api_test.py
 - API 文档：http://localhost:8080/docs
 - 健康检查：http://localhost:8080/health
 
-### 3. 测试核心功能
+### 4. 测试核心功能
 
 ```bash
 python test_core_functions.py
@@ -86,7 +101,7 @@ curl http://localhost:8080/api/v1/dual-investment/analyze/BTCUSDT
 ## 🎯 下一步
 
 1. **查看 API 文档**：http://localhost:8080/docs
-2. **开始前端开发**：`cd src/main/webapp && npm start`
+2. **开始前端开发**：`./start_frontend.sh` 或 `cd src/main/webapp && PORT=3001 npm start`
 3. **配置数据库**：设置 PostgreSQL 和 Redis
 4. **部署到生产**：使用 Docker 或云服务
 
