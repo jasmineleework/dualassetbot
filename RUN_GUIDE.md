@@ -31,10 +31,10 @@ INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 **方法二：手动启动**
 ```bash
 cd src/main/webapp
-PORT=3001 npm start
+PORT=3010 npm start
 ```
 
-前端将在 http://localhost:3001 运行
+前端将在 http://localhost:3010 运行
 
 ### 3. 验证服务器运行
 
@@ -101,7 +101,7 @@ curl http://localhost:8080/api/v1/dual-investment/analyze/BTCUSDT
 ## 🎯 下一步
 
 1. **查看 API 文档**：http://localhost:8080/docs
-2. **开始前端开发**：`./start_frontend.sh` 或 `cd src/main/webapp && PORT=3001 npm start`
+2. **开始前端开发**：`./start_frontend.sh` 或 `cd src/main/webapp && PORT=3010 npm start`
 3. **配置数据库**：设置 PostgreSQL 和 Redis
 4. **部署到生产**：使用 Docker 或云服务
 

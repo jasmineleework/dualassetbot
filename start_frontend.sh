@@ -13,9 +13,9 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Start the frontend server
-echo "Starting React dev server on http://localhost:3001"
+echo "Starting React dev server on http://localhost:3010"
 echo "Press Ctrl+C to stop the server"
 echo ""
 
-# Use PORT environment variable to run on 3001
-PORT=3001 npm start
+# Use PORT environment variable to run on 3010
+PORT=3010 npm start

@@ -2,7 +2,7 @@
 
 ## 端口配置
 - **API 服务器**: 8080
-- **前端应用**: 3001
+- **前端应用**: 3010
 
 ## 一键启动
 
@@ -18,7 +18,7 @@
 
 ## 访问地址
 
-- **前端界面**: http://localhost:3001
+- **前端界面**: http://localhost:3010
 - **API 文档**: http://localhost:8080/docs
 - **健康检查**: http://localhost:8080/health
 
@@ -34,7 +34,7 @@ uvicorn api.main:app --reload --port 8080
 ### 前端应用
 ```bash
 cd src/main/webapp
-PORT=3001 npm start
+PORT=3010 npm start
 ```
 
 ## 测试
