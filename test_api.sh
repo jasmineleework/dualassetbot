@@ -3,7 +3,7 @@
 echo "Testing Dual Asset Bot API Endpoints"
 echo "===================================="
 
-API_BASE="http://localhost:8000"
+API_BASE="http://localhost:8080"
 
 # Test health endpoint
 echo -e "\n1. Testing Health Check:"

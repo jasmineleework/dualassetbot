@@ -10,9 +10,9 @@ source venv/bin/activate
 cd src/main/python
 
 # Start the API server
-echo "Starting uvicorn server on http://localhost:8000"
-echo "API Documentation: http://localhost:8000/docs"
+echo "Starting uvicorn server on http://localhost:8080"
+echo "API Documentation: http://localhost:8080/docs"
 echo "Press Ctrl+C to stop the server"
 echo ""
 
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8080

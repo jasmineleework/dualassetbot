@@ -18,7 +18,7 @@ uvicorn api.main:app --reload
 
 服务器启动后会显示：
 ```
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 ```
 
 ### 2. 验证服务器运行
@@ -29,8 +29,8 @@ python quick_api_test.py
 ```
 
 或者在浏览器访问：
-- API 文档：http://localhost:8000/docs
-- 健康检查：http://localhost:8000/health
+- API 文档：http://localhost:8080/docs
+- 健康检查：http://localhost:8080/health
 
 ### 3. 测试核心功能
 
@@ -42,22 +42,22 @@ python test_core_functions.py
 
 ### 获取 BTC 价格
 ```bash
-curl http://localhost:8000/api/v1/market/price/BTCUSDT
+curl http://localhost:8080/api/v1/market/price/BTCUSDT
 ```
 
 ### 获取市场分析
 ```bash
-curl http://localhost:8000/api/v1/market/analysis/BTCUSDT
+curl http://localhost:8080/api/v1/market/analysis/BTCUSDT
 ```
 
 ### 获取双币赢产品
 ```bash
-curl http://localhost:8000/api/v1/dual-investment/products
+curl http://localhost:8080/api/v1/dual-investment/products
 ```
 
 ### 获取投资建议
 ```bash
-curl http://localhost:8000/api/v1/dual-investment/analyze/BTCUSDT
+curl http://localhost:8080/api/v1/dual-investment/analyze/BTCUSDT
 ```
 
 ## 🔧 故障排除
@@ -85,7 +85,7 @@ curl http://localhost:8000/api/v1/dual-investment/analyze/BTCUSDT
 
 ## 🎯 下一步
 
-1. **查看 API 文档**：http://localhost:8000/docs
+1. **查看 API 文档**：http://localhost:8080/docs
 2. **开始前端开发**：`cd src/main/webapp && npm start`
 3. **配置数据库**：设置 PostgreSQL 和 Redis
 4. **部署到生产**：使用 Docker 或云服务

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     
     # API
     api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    api_port: int = 8080
     
     # Database
     database_url: str = "postgresql://user:password@localhost:5432/dual_asset_bot"
