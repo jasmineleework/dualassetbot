@@ -15,7 +15,7 @@ class BinanceService:
     def __init__(self):
         """Initialize Binance client"""
         self.client = None
-        self._initialize_client()
+        self._initialized = False
     
     def _initialize_client(self):
         """Initialize Binance API client"""
@@ -39,7 +39,18 @@ class BinanceService:
             
         except Exception as e:
             logger.error(f"Failed to initialize Binance client: {e}")
-            raise
+            self.client = None  # Ensure client is None on failure
+            self._initialized = False
+            return
+        
+        self._initialized = True
+    
+    def ensure_initialized(self):
+        """Ensure the client is initialized"""
+        if not self._initialized or not self.client:
+            self._initialize_client()
+            if not self.client:
+                raise ValueError("Binance client not initialized - check API credentials")
     
     def get_account_balance(self) -> Dict[str, float]:
         """Get account balance for all assets"""
@@ -71,8 +82,7 @@ class BinanceService:
     def get_symbol_price(self, symbol: str) -> float:
         """Get current price for a symbol"""
         try:
-            if not self.client:
-                raise ValueError("Binance client not initialized")
+            self.ensure_initialized()
             
             ticker = self.client.get_symbol_ticker(symbol=symbol)
             return float(ticker['price'])
@@ -231,5 +241,5 @@ class BinanceService:
             logger.error(f"Connection test failed: {e}")
             return False
 
-# Create singleton instance
+# Create singleton instance (lazy initialization)
 binance_service = BinanceService()

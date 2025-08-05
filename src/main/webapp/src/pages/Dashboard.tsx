@@ -26,15 +26,32 @@ const Dashboard: React.FC = () => {
       setRefreshing(true);
       setError(null);
 
-      // Fetch all data in parallel
-      const [statusRes, priceRes, analysisRes, productsRes] = await Promise.all([
-        apiService.getStatus(),
+      // First check status
+      const statusRes = await apiService.getStatus();
+      setBotStatus(statusRes);
+
+      // If bot is not connected, show limited data
+      if (!statusRes.binance_connected) {
+        setError('Binance API not connected. Please check your API credentials.');
+        setLoading(false);
+        
+        // Still try to get mock products
+        try {
+          const productsRes = await apiService.getDualInvestmentProducts();
+          setProducts(productsRes);
+        } catch (e) {
+          // Ignore products error
+        }
+        return;
+      }
+
+      // Fetch all data in parallel if connected
+      const [priceRes, analysisRes, productsRes] = await Promise.all([
         apiService.getPrice('BTCUSDT'),
         apiService.getMarketAnalysis('BTCUSDT'),
         apiService.getDualInvestmentProducts()
       ]);
 
-      setBotStatus(statusRes);
       setBtcPrice(priceRes.price);
       setMarketAnalysis(analysisRes);
       setProducts(productsRes);

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 import os
 from dotenv import load_dotenv
+from loguru import logger
 
 # Import routers
 from api.routers import market, dual_investment, account
@@ -34,6 +35,17 @@ app.add_middleware(
 app.include_router(market.router)
 app.include_router(dual_investment.router)
 app.include_router(account.router)
+
+# Initialize services on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    from services.binance_service import binance_service
+    try:
+        binance_service._initialize_client()
+        logger.info("Services initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize services: {e}")
 
 # Health check response model
 class HealthResponse(BaseModel):
