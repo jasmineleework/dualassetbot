@@ -8,6 +8,9 @@ from typing import Optional
 import os
 from dotenv import load_dotenv
 
+# Import routers
+from api.routers import market, dual_investment, account
+
 # Load environment variables
 load_dotenv()
 
@@ -26,6 +29,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(market.router)
+app.include_router(dual_investment.router)
+app.include_router(account.router)
 
 # Health check response model
 class HealthResponse(BaseModel):
@@ -50,11 +58,16 @@ async def health_check():
 @app.get("/api/v1/status")
 async def get_status():
     """Get bot status"""
+    from services.binance_service import binance_service
+    
+    connected = binance_service.test_connection()
+    
     return {
-        "bot_running": False,
+        "bot_running": connected,
+        "binance_connected": connected,
         "strategies_active": 0,
         "last_check": None,
-        "message": "Bot not yet implemented"
+        "message": "Bot is running" if connected else "Bot not connected to Binance"
     }
 
 if __name__ == "__main__":
