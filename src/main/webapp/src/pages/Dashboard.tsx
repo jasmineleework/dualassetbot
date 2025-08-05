@@ -1,0 +1,277 @@
+import React, { useEffect, useState } from 'react';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography } from 'antd';
+import { 
+  DollarOutlined, 
+  LineChartOutlined, 
+  RobotOutlined,
+  SyncOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined 
+} from '@ant-design/icons';
+import { apiService, BotStatus, DualInvestmentProduct, MarketAnalysis } from '../services/api';
+
+const { Title } = Typography;
+
+const Dashboard: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
+  const [btcPrice, setBtcPrice] = useState<number | null>(null);
+  const [marketAnalysis, setMarketAnalysis] = useState<MarketAnalysis | null>(null);
+  const [products, setProducts] = useState<DualInvestmentProduct[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setRefreshing(true);
+      setError(null);
+
+      // Fetch all data in parallel
+      const [statusRes, priceRes, analysisRes, productsRes] = await Promise.all([
+        apiService.getStatus(),
+        apiService.getPrice('BTCUSDT'),
+        apiService.getMarketAnalysis('BTCUSDT'),
+        apiService.getDualInvestmentProducts()
+      ]);
+
+      setBotStatus(statusRes);
+      setBtcPrice(priceRes.price);
+      setMarketAnalysis(analysisRes);
+      setProducts(productsRes);
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+      setLoading(false);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getTrendIcon = (trend: string) => {
+    return trend === 'BULLISH' ? 
+      <ArrowUpOutlined style={{ color: '#52c41a' }} /> : 
+      <ArrowDownOutlined style={{ color: '#f5222d' }} />;
+  };
+
+  const getSignalColor = (signal: string) => {
+    const colors: Record<string, string> = {
+      'BUY': 'green',
+      'STRONG_BUY': 'success',
+      'SELL': 'red',
+      'STRONG_SELL': 'error',
+      'HOLD': 'default',
+      'NEUTRAL': 'default',
+      'OVERSOLD': 'green',
+      'OVERBOUGHT': 'red'
+    };
+    return colors[signal] || 'default';
+  };
+
+  const productColumns = [
+    {
+      title: 'Product ID',
+      dataIndex: 'id',
+      key: 'id',
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type: string) => (
+        <Tag color={type === 'BUY_LOW' ? 'green' : 'blue'}>
+          {type === 'BUY_LOW' ? '低买' : '高卖'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Asset',
+      dataIndex: 'asset',
+      key: 'asset',
+    },
+    {
+      title: 'Strike Price',
+      dataIndex: 'strike_price',
+      key: 'strike_price',
+      render: (price: number) => `$${price.toLocaleString()}`,
+    },
+    {
+      title: 'APY',
+      dataIndex: 'apy',
+      key: 'apy',
+      render: (apy: number) => `${(apy * 100).toFixed(1)}%`,
+    },
+    {
+      title: 'Term',
+      dataIndex: 'term_days',
+      key: 'term_days',
+      render: (days: number) => `${days} days`,
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record: DualInvestmentProduct) => (
+        <Button type="primary" size="small">
+          Subscribe
+        </Button>
+      ),
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: 100 }}>
+        <Spin size="large" />
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert
+        message="Error"
+        description={error}
+        type="error"
+        showIcon
+        action={
+          <Button size="small" onClick={fetchData}>
+            Retry
+          </Button>
+        }
+      />
+    );
+  }
+
+  return (
+    <div style={{ padding: 24 }}>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Title level={2}>Trading Dashboard</Title>
+        <Button 
+          icon={<SyncOutlined spin={refreshing} />} 
+          onClick={fetchData}
+          loading={refreshing}
+        >
+          Refresh
+        </Button>
+      </div>
+
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="Bot Status"
+              value={botStatus?.bot_running ? 'Running' : 'Stopped'}
+              valueStyle={{ color: botStatus?.bot_running ? '#3f8600' : '#cf1322' }}
+              prefix={<RobotOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="BTC Price"
+              value={btcPrice || 0}
+              precision={2}
+              prefix="$"
+              suffix={marketAnalysis && getTrendIcon(marketAnalysis.trend.trend)}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="24h Change"
+              value={marketAnalysis?.price_change_24h || 0}
+              precision={2}
+              valueStyle={{ 
+                color: (marketAnalysis?.price_change_24h || 0) > 0 ? '#3f8600' : '#cf1322' 
+              }}
+              prefix={<LineChartOutlined />}
+              suffix="%"
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="Active Strategies"
+              value={botStatus?.strategies_active || 0}
+              prefix={<DollarOutlined />}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {marketAnalysis && (
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={12}>
+            <Card title="Market Analysis">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div>
+                  <strong>Trend:</strong>{' '}
+                  <Tag color={marketAnalysis.trend.trend === 'BULLISH' ? 'green' : 'red'}>
+                    {marketAnalysis.trend.trend} ({marketAnalysis.trend.strength})
+                  </Tag>
+                </div>
+                <div>
+                  <strong>Volatility:</strong>{' '}
+                  <Tag color={marketAnalysis.volatility.risk_level === 'HIGH' ? 'red' : 'blue'}>
+                    {marketAnalysis.volatility.risk_level}
+                  </Tag>
+                </div>
+                <div>
+                  <strong>Overall Signal:</strong>{' '}
+                  <Tag color={getSignalColor(marketAnalysis.signals.recommendation)}>
+                    {marketAnalysis.signals.recommendation}
+                  </Tag>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card title="Technical Indicators">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div>
+                  <strong>RSI:</strong>{' '}
+                  <Tag color={getSignalColor(marketAnalysis.signals.rsi_signal)}>
+                    {marketAnalysis.signals.rsi_signal}
+                  </Tag>
+                </div>
+                <div>
+                  <strong>MACD:</strong>{' '}
+                  <Tag color={getSignalColor(marketAnalysis.signals.macd_signal)}>
+                    {marketAnalysis.signals.macd_signal}
+                  </Tag>
+                </div>
+                <div>
+                  <strong>Bollinger Bands:</strong>{' '}
+                  <Tag color={getSignalColor(marketAnalysis.signals.bb_signal)}>
+                    {marketAnalysis.signals.bb_signal}
+                  </Tag>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      <Card title="Available Dual Investment Products">
+        <Table
+          columns={productColumns}
+          dataSource={products}
+          rowKey="id"
+          pagination={false}
+        />
+      </Card>
+    </div>
+  );
+};
+
+export default Dashboard;
