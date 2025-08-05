@@ -26,9 +26,12 @@ class BinanceService:
             
             self.client = Client(
                 api_key=settings.binance_api_key,
-                api_secret=settings.binance_api_secret,
-                testnet=settings.binance_testnet
+                api_secret=settings.binance_api_secret
             )
+            
+            # Set testnet if enabled
+            if settings.binance_testnet:
+                self.client.API_URL = 'https://testnet.binance.vision/api'
             
             # Test connection
             self.client.ping()
