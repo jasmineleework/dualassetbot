@@ -170,11 +170,28 @@ export interface ScheduledTask {
 
 class ApiService {
   private async fetchJson<T>(url: string): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${url}`);
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}${url}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+      
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
+      throw error;
     }
-    return response.json();
   }
 
   // Health & Status
