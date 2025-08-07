@@ -11,7 +11,7 @@ from services.market_analysis import market_analysis_service
 from core.config import settings
 from strategies.strategy_manager import StrategyManager
 from core.database import get_db
-from dao import strategy_log_dao
+from dao.strategy_log import StrategyLogDAO
 from models.strategy_log import DecisionType
 import time
 
@@ -367,7 +367,8 @@ class DualInvestmentEngine:
                     # Log strategy decision to database
                     try:
                         with next(get_db()) as db:
-                            strategy_log_dao.log_decision(
+                            dao = StrategyLogDAO(db)
+                            dao.log_decision(
                                 db=db,
                                 user_id=self.user_id,
                                 strategy_name="DualInvestmentEngine",

@@ -198,3 +198,4 @@ class MarketAnalysisService:
 
 # Create singleton instance
 market_analysis_service = MarketAnalysisService()
+market_analyzer = market_analysis_service  # Alias for backward compatibility

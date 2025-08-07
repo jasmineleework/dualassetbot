@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     
     # Celery
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
     
