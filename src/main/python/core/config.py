@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     api_port: int = 8080
     
     # Database
-    database_url: str = "postgresql://user:password@localhost:5432/dual_asset_bot"
-    redis_url: str = "redis://localhost:6379/0"
+    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./data/dual_asset_bot.db")
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     # Binance API
     binance_api_key: Optional[str] = None
