@@ -1,0 +1,296 @@
+/* Simple Chart Styles */
+
+.simple-chart-card {
+  margin-bottom: 16px;
+}
+
+/* Bar Chart */
+.simple-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  padding: 16px 0;
+  position: relative;
+}
+
+.bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 80px;
+}
+
+.bar-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+}
+
+.bar-fill {
+  width: 60%;
+  min-height: 10px;
+  background: linear-gradient(180deg, rgba(24, 144, 255, 1) 0%, rgba(24, 144, 255, 0.8) 100%);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.bar-fill:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+.bar-value {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: bold;
+  color: #1890ff;
+  white-space: nowrap;
+}
+
+.bar-label {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8c8c8c;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pie Chart */
+.simple-pie-chart {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 16px;
+}
+
+.pie-svg {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+}
+
+.pie-slice {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  stroke: #fff;
+  stroke-width: 0.5;
+}
+
+.pie-slice:hover {
+  opacity: 0.8;
+  stroke-width: 1;
+}
+
+.pie-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  flex: 1;
+  color: #595959;
+}
+
+.legend-value {
+  font-weight: bold;
+  color: #262626;
+}
+
+/* Line Chart */
+.simple-line-chart {
+  position: relative;
+  padding: 16px;
+}
+
+.line-svg {
+  width: 100%;
+  height: calc(100% - 30px);
+}
+
+.line-point {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.line-point:hover {
+  r: 5;
+  fill: #096dd9;
+}
+
+.line-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.line-label-item {
+  text-align: center;
+  flex: 1;
+}
+
+/* Mini Sparkline */
+.mini-sparkline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+}
+
+.sparkline-svg {
+  width: 80px;
+  height: 30px;
+}
+
+.trend-indicator {
+  font-size: 12px;
+}
+
+.trend-indicator.up {
+  color: #52c41a;
+}
+
+.trend-indicator.down {
+  color: #f5222d;
+}
+
+/* Progress Chart */
+.progress-chart-card {
+  text-align: center;
+}
+
+.progress-chart-card .ant-statistic {
+  margin-bottom: 16px;
+}
+
+.progress-chart-card .ant-progress {
+  margin-bottom: 8px;
+}
+
+/* Comparison Chart */
+.comparison-chart-card .comparison-item {
+  text-align: center;
+  padding: 8px;
+  border-radius: 4px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.comparison-chart-card .comparison-item:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+.comparison-change {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px;
+  gap: 4px;
+}
+
+/* Tooltips */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  margin-bottom: 4px;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.simple-chart-card {
+  animation: slideUp 0.5s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .simple-pie-chart {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .pie-svg {
+    width: 150px;
+    height: 150px;
+  }
+
+  .bar-fill {
+    width: 80%;
+  }
+
+  .comparison-chart-card .ant-col {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .simple-bar-chart {
+    padding: 8px 0;
+  }
+
+  .bar-item {
+    max-width: 60px;
+  }
+
+  .bar-value {
+    font-size: 10px;
+  }
+
+  .bar-label {
+    font-size: 10px;
+  }
+}

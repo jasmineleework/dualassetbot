@@ -11,6 +11,7 @@ import {
 import { apiService, BotStatus, DualInvestmentProduct, MarketAnalysis } from '../services/api';
 import { usePriceUpdates, useSystemAlerts, usePortfolioUpdates } from '../hooks/useWebSocket';
 import ConnectionIndicator from '../components/ConnectionIndicator';
+import { SimpleBarChart, SimplePieChart, MiniSparkline, ProgressChart } from '../components/Charts/SimpleChart';
 
 const { Title } = Typography;
 
@@ -317,56 +318,84 @@ const Dashboard: React.FC = () => {
       )}
 
       {marketAnalysis && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={12}>
-            <Card title="Market Analysis">
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div>
-                  <strong>Trend:</strong>{' '}
-                  <Tag color={marketAnalysis.trend.trend === 'BULLISH' ? 'green' : 'red'}>
-                    {marketAnalysis.trend.trend} ({marketAnalysis.trend.strength})
-                  </Tag>
-                </div>
-                <div>
-                  <strong>Volatility:</strong>{' '}
-                  <Tag color={marketAnalysis.volatility.risk_level === 'HIGH' ? 'red' : 'blue'}>
-                    {marketAnalysis.volatility.risk_level}
-                  </Tag>
-                </div>
-                <div>
-                  <strong>Overall Signal:</strong>{' '}
-                  <Tag color={getSignalColor(marketAnalysis.signals.recommendation)}>
-                    {marketAnalysis.signals.recommendation}
-                  </Tag>
-                </div>
-              </Space>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card title="Technical Indicators">
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div>
-                  <strong>RSI:</strong>{' '}
-                  <Tag color={getSignalColor(marketAnalysis.signals.rsi_signal)}>
-                    {marketAnalysis.signals.rsi_signal}
-                  </Tag>
-                </div>
-                <div>
-                  <strong>MACD:</strong>{' '}
-                  <Tag color={getSignalColor(marketAnalysis.signals.macd_signal)}>
-                    {marketAnalysis.signals.macd_signal}
-                  </Tag>
-                </div>
-                <div>
-                  <strong>Bollinger Bands:</strong>{' '}
-                  <Tag color={getSignalColor(marketAnalysis.signals.bb_signal)}>
-                    {marketAnalysis.signals.bb_signal}
-                  </Tag>
-                </div>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
+        <>
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col span={12}>
+              <Card title="Market Analysis">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div>
+                    <strong>Trend:</strong>{' '}
+                    <Tag color={marketAnalysis.trend.trend === 'BULLISH' ? 'green' : 'red'}>
+                      {marketAnalysis.trend.trend} ({marketAnalysis.trend.strength})
+                    </Tag>
+                  </div>
+                  <div>
+                    <strong>Volatility:</strong>{' '}
+                    <Tag color={marketAnalysis.volatility.risk_level === 'HIGH' ? 'red' : 'blue'}>
+                      {marketAnalysis.volatility.risk_level}
+                    </Tag>
+                  </div>
+                  <div>
+                    <strong>Overall Signal:</strong>{' '}
+                    <Tag color={getSignalColor(marketAnalysis.signals.recommendation)}>
+                      {marketAnalysis.signals.recommendation}
+                    </Tag>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+            <Col span={12}>
+              <Card title="Technical Indicators">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div>
+                    <strong>RSI:</strong>{' '}
+                    <Tag color={getSignalColor(marketAnalysis.signals.rsi_signal)}>
+                      {marketAnalysis.signals.rsi_signal}
+                    </Tag>
+                  </div>
+                  <div>
+                    <strong>MACD:</strong>{' '}
+                    <Tag color={getSignalColor(marketAnalysis.signals.macd_signal)}>
+                      {marketAnalysis.signals.macd_signal}
+                    </Tag>
+                  </div>
+                  <div>
+                    <strong>Bollinger Bands:</strong>{' '}
+                    <Tag color={getSignalColor(marketAnalysis.signals.bb_signal)}>
+                      {marketAnalysis.signals.bb_signal}
+                    </Tag>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Data Visualization Charts */}
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col span={12}>
+              <SimpleBarChart
+                title="Signal Strength Analysis"
+                data={[
+                  { label: 'RSI', value: marketAnalysis.signals.rsi_signal === 'BUY' ? 75 : marketAnalysis.signals.rsi_signal === 'SELL' ? 25 : 50, color: '#1890ff' },
+                  { label: 'MACD', value: marketAnalysis.signals.macd_signal === 'BUY' ? 80 : marketAnalysis.signals.macd_signal === 'SELL' ? 20 : 50, color: '#52c41a' },
+                  { label: 'BB', value: marketAnalysis.signals.bb_signal === 'BUY' ? 70 : marketAnalysis.signals.bb_signal === 'SELL' ? 30 : 50, color: '#faad14' },
+                  { label: 'Overall', value: marketAnalysis.signals.recommendation === 'BUY' ? 85 : marketAnalysis.signals.recommendation === 'SELL' ? 15 : 50, color: '#722ed1' }
+                ]}
+                height={200}
+              />
+            </Col>
+            <Col span={12}>
+              <SimplePieChart
+                title="Risk Distribution"
+                data={[
+                  { label: 'Low Risk', value: marketAnalysis.volatility.risk_level === 'LOW' ? 60 : 20, color: '#52c41a' },
+                  { label: 'Medium Risk', value: marketAnalysis.volatility.risk_level === 'MEDIUM' ? 60 : 30, color: '#faad14' },
+                  { label: 'High Risk', value: marketAnalysis.volatility.risk_level === 'HIGH' ? 60 : 10, color: '#f5222d' }
+                ]}
+              />
+            </Col>
+          </Row>
+        </>
       )}
 
       <Card title="Available Dual Investment Products">
