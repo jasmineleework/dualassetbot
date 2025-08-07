@@ -1,0 +1,117 @@
+.ai-recommendations {
+  padding: 24px;
+  min-height: 100vh;
+  background: #f0f2f5;
+}
+
+.ai-recommendations .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ai-recommendations .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.ai-recommendations .ant-table-tbody > tr:hover > td {
+  background: #e6f7ff;
+}
+
+.ai-recommendations .ant-badge-status-success {
+  background-color: #52c41a;
+}
+
+.ai-recommendations .ant-badge-status-error {
+  background-color: #ff4d4f;
+}
+
+.ai-recommendations .ant-progress-bg {
+  border-radius: 4px;
+}
+
+.ai-recommendations .ant-statistic-title {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.ai-recommendations .ant-statistic-content {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.recommendation-card {
+  margin-bottom: 16px;
+  border-left: 4px solid #1890ff;
+}
+
+.recommendation-card.strong-buy {
+  border-left-color: #52c41a;
+}
+
+.recommendation-card.buy {
+  border-left-color: #1890ff;
+}
+
+.recommendation-card.consider {
+  border-left-color: #faad14;
+}
+
+.recommendation-card.skip {
+  border-left-color: #ff4d4f;
+}
+
+.recommendation-details {
+  padding: 16px;
+}
+
+.recommendation-details h4 {
+  margin-bottom: 8px;
+  color: #1890ff;
+}
+
+.recommendation-details ul {
+  margin-bottom: 0;
+}
+
+.recommendation-details li {
+  margin-bottom: 4px;
+}
+
+.market-overview {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.market-overview .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.market-overview .ant-statistic-content {
+  color: white;
+}
+
+.trend-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.trend-bullish {
+  background: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+}
+
+.trend-bearish {
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+}
+
+.trend-sideways {
+  background: rgba(250, 173, 20, 0.1);
+  color: #faad14;
+}

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 # Import routers
-from api.routers import market, dual_investment, account
+from api.routers import market, dual_investment, account, trading, tasks
 
 # Load environment variables
 load_dotenv()
@@ -35,6 +35,8 @@ app.add_middleware(
 app.include_router(market.router)
 app.include_router(dual_investment.router)
 app.include_router(account.router)
+app.include_router(trading.router)
+app.include_router(tasks.router)
 
 # Initialize services on startup
 @app.on_event("startup")

@@ -5,11 +5,29 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+import json
+import numpy as np
 from services.binance_service import binance_service
 from core.dual_investment_engine import dual_investment_engine
 from loguru import logger
 
 router = APIRouter(prefix="/api/v1/dual-investment", tags=["dual-investment"])
+
+def convert_numpy_types(obj):
+    """Convert numpy types to native Python types for JSON serialization"""
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    return obj
 
 class DualInvestmentProduct(BaseModel):
     id: str
@@ -128,6 +146,9 @@ async def get_ai_recommendations(
     """Get AI-powered investment recommendations using strategy ensemble"""
     try:
         recommendations = dual_investment_engine.get_ai_recommendations(symbol.upper(), limit)
+        
+        # Convert numpy types to native Python types
+        recommendations = convert_numpy_types(recommendations)
         
         return {
             "symbol": symbol.upper(),

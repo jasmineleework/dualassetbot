@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
     
+    # Task Configuration
+    enable_automated_trading: bool = False  # Safety switch
+    max_concurrent_trades: int = 5
+    trading_cooldown_minutes: int = 15
+    
     # Logging
     log_level: str = "INFO"
     

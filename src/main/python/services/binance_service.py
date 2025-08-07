@@ -278,5 +278,134 @@ class BinanceService:
             logger.error(f"Connection test failed: {e}")
             return False
 
+    def subscribe_dual_investment(self, product_id: str, amount: float) -> Dict[str, Any]:
+        """
+        Subscribe to a dual investment product (simulated for testnet)
+        """
+        try:
+            self.ensure_initialized()
+            
+            # In testnet mode, simulate the subscription
+            if settings.binance_testnet:
+                # Generate simulated order ID
+                import time
+                import random
+                order_id = f"SIM_{int(time.time())}{random.randint(1000, 9999)}"
+                
+                # Simulate successful subscription
+                result = {
+                    'success': True,
+                    'order_id': order_id,
+                    'product_id': product_id,
+                    'amount': amount,
+                    'execution_price': self.get_symbol_price(product_id.split('-')[0] + 'USDT')['price'],
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'status': 'PENDING',
+                    'message': 'Dual investment subscription successful (simulated)'
+                }
+                
+                logger.info(f"Simulated dual investment subscription: {product_id} for ${amount}")
+                return result
+            else:
+                # For production, would implement actual Binance API call
+                # Currently returns simulated result
+                logger.warning("Production dual investment subscription not implemented")
+                return {
+                    'success': False,
+                    'error': 'Production dual investment API not implemented',
+                    'message': 'Please use testnet mode for testing'
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to subscribe to dual investment {product_id}: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Dual investment subscription failed'
+            }
+
+    def get_investment_status(self, order_id: str) -> Dict[str, Any]:
+        """
+        Get the status of a dual investment order
+        """
+        try:
+            self.ensure_initialized()
+            
+            # In testnet mode, simulate status checking
+            if settings.binance_testnet:
+                # Simulate different statuses based on time
+                import hashlib
+                hash_val = int(hashlib.md5(order_id.encode()).hexdigest()[:8], 16)
+                
+                # Simulate status progression
+                statuses = ['PENDING', 'ACTIVE', 'SETTLED', 'CANCELLED']
+                status = statuses[hash_val % len(statuses)]
+                
+                # Generate realistic PnL for settled investments
+                pnl = 0
+                if status == 'SETTLED':
+                    # Random return between -5% to +15%
+                    return_pct = (hash_val % 2000 - 500) / 10000  # -5% to +15%
+                    pnl = return_pct * 100  # Assume $100 base amount
+                
+                result = {
+                    'order_id': order_id,
+                    'status': status,
+                    'pnl': pnl,
+                    'updated_at': datetime.utcnow().isoformat(),
+                    'message': f'Simulated status: {status}'
+                }
+                
+                return result
+            else:
+                logger.warning("Production investment status checking not implemented")
+                return {
+                    'order_id': order_id,
+                    'status': 'UNKNOWN',
+                    'message': 'Production status API not implemented'
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to get investment status for {order_id}: {e}")
+            return {
+                'error': str(e),
+                'message': 'Status check failed'
+            }
+
+    def cancel_dual_investment(self, order_id: str) -> Dict[str, Any]:
+        """
+        Cancel a dual investment order
+        """
+        try:
+            self.ensure_initialized()
+            
+            # In testnet mode, simulate cancellation
+            if settings.binance_testnet:
+                result = {
+                    'success': True,
+                    'order_id': order_id,
+                    'status': 'CANCELLED',
+                    'cancelled_at': datetime.utcnow().isoformat(),
+                    'message': 'Dual investment cancelled successfully (simulated)'
+                }
+                
+                logger.info(f"Simulated dual investment cancellation: {order_id}")
+                return result
+            else:
+                logger.warning("Production dual investment cancellation not implemented")
+                return {
+                    'success': False,
+                    'error': 'Production cancellation API not implemented',
+                    'message': 'Please use testnet mode for testing'
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to cancel dual investment {order_id}: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Cancellation failed'
+            }
+
 # Create singleton instance (lazy initialization)
 binance_service = BinanceService()

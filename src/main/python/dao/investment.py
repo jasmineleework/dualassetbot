@@ -12,17 +12,60 @@ from loguru import logger
 class InvestmentDAO(BaseDAO[Investment]):
     """Data Access Object for Investment model"""
     
-    def __init__(self):
+    def __init__(self, db: Session):
         super().__init__(Investment)
+        self.db = db
+    
+    def get_by_status(self, status: InvestmentStatus, limit: int = 100, offset: int = 0) -> List[Investment]:
+        """Get investments by status with pagination"""
+        return (
+            self.db.query(Investment)
+            .filter(Investment.status == status)
+            .order_by(Investment.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+    
+    def get_investments_in_range(self, start_date: datetime, end_date: datetime) -> List[Investment]:
+        """Get investments created within a date range"""
+        return (
+            self.db.query(Investment)
+            .filter(Investment.created_at >= start_date)
+            .filter(Investment.created_at <= end_date)
+            .order_by(Investment.created_at.desc())
+            .all()
+        )
+    
+    def get_all(self, limit: int = 100, offset: int = 0) -> List[Investment]:
+        """Get all investments with pagination"""
+        return (
+            self.db.query(Investment)
+            .order_by(Investment.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+    
+    def create(self, investment: Investment) -> Investment:
+        """Create a new investment record"""
+        return super().create(self.db, **investment.__dict__)
+    
+    def update(self, investment_id: str, investment: Investment) -> Optional[Investment]:
+        """Update an investment record"""
+        return super().update(self.db, investment_id, **investment.__dict__)
+    
+    def get(self, investment_id: str) -> Optional[Investment]:
+        """Get an investment by ID"""
+        return super().get(self.db, investment_id)
     
     def get_active_investments(
         self, 
-        db: Session, 
         user_id: str,
         asset: Optional[str] = None
     ) -> List[Investment]:
         """Get all active investments for a user"""
-        query = db.query(Investment).filter(
+        query = self.db.query(Investment).filter(
             and_(
                 Investment.user_id == user_id,
                 Investment.status == InvestmentStatus.ACTIVE
@@ -34,13 +77,10 @@ class InvestmentDAO(BaseDAO[Investment]):
         
         return query.all()
     
-    def get_investments_pending_settlement(
-        self, 
-        db: Session
-    ) -> List[Investment]:
+    def get_investments_pending_settlement(self) -> List[Investment]:
         """Get investments that are due for settlement"""
         now = datetime.utcnow()
-        return db.query(Investment).filter(
+        return self.db.query(Investment).filter(
             and_(
                 Investment.status == InvestmentStatus.ACTIVE,
                 Investment.settlement_date <= now

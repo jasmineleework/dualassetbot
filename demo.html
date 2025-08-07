@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 DualAssetBot - AI双币赢交易机器人</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        select, button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #40a9ff;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .error {
+            background: #ff4d4f;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .market-overview {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .market-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1890ff;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .recommendations {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .recommendation-item {
+            border: 1px solid #f0f0f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+        
+        .recommendation-item:hover {
+            border-color: #1890ff;
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
+        }
+        
+        .recommendation-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .product-id {
+            font-family: 'Monaco', monospace;
+            font-size: 0.9rem;
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .recommendation-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .strong-buy { background: #52c41a; color: white; }
+        .buy { background: #1890ff; color: white; }
+        .consider { background: #faad14; color: white; }
+        .skip { background: #ff4d4f; color: white; }
+        
+        .recommendation-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .detail-item {
+            text-align: center;
+        }
+        
+        .detail-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .detail-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .reasons {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .reasons h4 {
+            margin-bottom: 10px;
+            color: #1890ff;
+        }
+        
+        .reasons ul {
+            list-style: none;
+        }
+        
+        .reasons li {
+            margin-bottom: 5px;
+            padding-left: 15px;
+            position: relative;
+        }
+        
+        .reasons li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #52c41a;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🤖 DualAssetBot</h1>
+            <p>AI驱动的双币赢投资决策系统 - 基于Binance Testnet实时数据</p>
+        </header>
+
+        <div class="controls">
+            <label>选择交易对：</label>
+            <select id="symbolSelect">
+                <option value="BTCUSDT">BTC/USDT</option>
+                <option value="ETHUSDT">ETH/USDT</option>
+            </select>
+            <button id="refreshBtn" onclick="fetchRecommendations()">
+                🔄 刷新推荐
+            </button>
+            <span id="status" style="margin-left: auto; color: #666;">
+                点击刷新获取AI推荐
+            </span>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="marketOverview" class="market-overview" style="display: none;">
+            <h3>📊 市场概览</h3>
+            <div class="market-stats" id="marketStats">
+                <!-- Market stats will be populated here -->
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            ⏳ AI正在分析市场数据，生成投资建议...
+        </div>
+
+        <div class="recommendations" id="recommendationsContainer" style="display: none;">
+            <h3>🎯 AI投资推荐</h3>
+            <div id="recommendationsList">
+                <!-- Recommendations will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8081/api/v1';
+        
+        async function fetchRecommendations() {
+            const symbol = document.getElementById('symbolSelect').value;
+            const statusEl = document.getElementById('status');
+            const errorEl = document.getElementById('error');
+            const loadingEl = document.getElementById('loading');
+            const marketEl = document.getElementById('marketOverview');
+            const recsEl = document.getElementById('recommendationsContainer');
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            // Reset UI
+            errorEl.style.display = 'none';
+            marketEl.style.display = 'none';
+            recsEl.style.display = 'none';
+            loadingEl.style.display = 'block';
+            refreshBtn.disabled = true;
+            statusEl.textContent = '正在获取数据...';
+            
+            try {
+                console.log('Fetching recommendations for:', symbol);
+                const response = await fetch(`${API_BASE}/dual-investment/ai-recommendations/${symbol}?limit=5`);
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('API Response:', data);
+                
+                // Display market overview
+                if (data.recommendations && data.recommendations.length > 0) {
+                    displayMarketOverview(data.recommendations[0].market_analysis);
+                    displayRecommendations(data.recommendations);
+                    statusEl.textContent = `✅ 已获取 ${data.total_recommendations} 条AI推荐`;
+                } else {
+                    throw new Error('未获取到推荐数据');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                errorEl.textContent = `❌ 错误: ${error.message}`;
+                errorEl.style.display = 'block';
+                statusEl.textContent = '❌ 获取失败';
+            } finally {
+                loadingEl.style.display = 'none';
+                refreshBtn.disabled = false;
+            }
+        }
+        
+        function displayMarketOverview(marketData) {
+            const marketStats = document.getElementById('marketStats');
+            const marketEl = document.getElementById('marketOverview');
+            
+            marketStats.innerHTML = `
+                <div class="stat">
+                    <div class="stat-value">$${marketData.current_price.toLocaleString()}</div>
+                    <div class="stat-label">当前价格</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${marketData.trend.trend}</div>
+                    <div class="stat-label">市场趋势</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${marketData.volatility.risk_level}</div>
+                    <div class="stat-label">风险等级</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${marketData.signals.current_rsi?.toFixed(1) || 'N/A'}</div>
+                    <div class="stat-label">RSI指标</div>
+                </div>
+            `;
+            
+            marketEl.style.display = 'block';
+        }
+        
+        function displayRecommendations(recommendations) {
+            const listEl = document.getElementById('recommendationsList');
+            const containerEl = document.getElementById('recommendationsContainer');
+            
+            listEl.innerHTML = recommendations.map(rec => `
+                <div class="recommendation-item">
+                    <div class="recommendation-header">
+                        <div class="product-id">${rec.product_id}</div>
+                        <span class="recommendation-badge ${rec.recommendation.toLowerCase().replace('_', '-')}">${rec.recommendation}</span>
+                    </div>
+                    
+                    <div class="recommendation-details">
+                        <div class="detail-item">
+                            <div class="detail-value">${(rec.ai_score * 100).toFixed(1)}%</div>
+                            <div class="detail-label">AI评分</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${rec.ai_score * 100}%; background: ${getScoreColor(rec.ai_score)};"></div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value">${(rec.expected_return * 100).toFixed(2)}%</div>
+                            <div class="detail-label">预期收益</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value" style="color: ${getRiskColor(rec.risk_score)}">${(rec.risk_score * 100).toFixed(0)}%</div>
+                            <div class="detail-label">风险评分</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value">$${rec.amount.toFixed(2)}</div>
+                            <div class="detail-label">建议金额</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value" style="color: ${rec.should_invest ? '#52c41a' : '#ff4d4f'}">${rec.should_invest ? '✅ 是' : '❌ 否'}</div>
+                            <div class="detail-label">是否投资</div>
+                        </div>
+                    </div>
+                    
+                    ${rec.reasons && rec.reasons.length > 0 ? `
+                        <div class="reasons">
+                            <h4>🤖 AI分析理由</h4>
+                            <ul>
+                                ${rec.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            containerEl.style.display = 'block';
+        }
+        
+        function getScoreColor(score) {
+            if (score >= 0.7) return '#52c41a';
+            if (score >= 0.5) return '#faad14';
+            return '#ff4d4f';
+        }
+        
+        function getRiskColor(risk) {
+            if (risk <= 0.3) return '#52c41a';
+            if (risk <= 0.6) return '#faad14';
+            return '#ff4d4f';
+        }
+        
+        // Initialize
+        document.getElementById('symbolSelect').addEventListener('change', () => {
+            document.getElementById('status').textContent = '点击刷新获取新的推荐';
+        });
+        
+        // Auto-fetch on load
+        setTimeout(() => {
+            fetchRecommendations();
+        }, 1000);
+    </script>
+</body>
+</html>
