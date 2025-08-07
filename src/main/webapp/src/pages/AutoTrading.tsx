@@ -85,7 +85,10 @@ const AutoTrading: React.FC = () => {
       }
       
       if (results[1].status === 'fulfilled') {
-        setActiveTasks(results[1].value.active_tasks);
+        setActiveTasks(results[1].value.active_tasks || []);
+      } else {
+        // If Celery/Redis is not running, just set empty tasks
+        setActiveTasks([]);
       }
       
       const recommendations = [];
