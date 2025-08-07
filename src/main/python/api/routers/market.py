@@ -84,41 +84,9 @@ async def get_24hr_stats(symbol: str):
     try:
         stats = binance_service.get_24hr_ticker_stats(symbol.upper())
         return stats
-    except ValueError as e:
-        # Return mock data if Binance is not connected
-        logger.warning(f"Using mock 24hr stats for {symbol}: {e}")
-        mock_stats = {
-            "BTCUSDT": {
-                "symbol": "BTCUSDT",
-                "price_change": -1234.56,
-                "price_change_percent": -1.28,
-                "last_price": 95234.56,
-                "volume": 23456.78,
-                "high_24h": 97000.00,
-                "low_24h": 94000.00
-            },
-            "ETHUSDT": {
-                "symbol": "ETHUSDT",
-                "price_change": 45.67,
-                "price_change_percent": 1.42,
-                "last_price": 3245.67,
-                "volume": 123456.78,
-                "high_24h": 3300.00,
-                "low_24h": 3180.00
-            }
-        }
-        return mock_stats.get(symbol.upper(), {
-            "symbol": symbol.upper(),
-            "price_change": 0,
-            "price_change_percent": 0,
-            "last_price": 100.0,
-            "volume": 1000.0,
-            "high_24h": 101.0,
-            "low_24h": 99.0
-        })
     except Exception as e:
         logger.error(f"Failed to get 24hr stats for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get market stats: {str(e)}")
 
 @router.get("/klines/{symbol}")
 async def get_klines(
@@ -136,41 +104,6 @@ async def get_klines(
             "interval": interval,
             "data": data
         }
-    except ValueError as e:
-        # Return mock data if Binance is not connected
-        logger.warning(f"Using mock klines for {symbol}: {e}")
-        import pandas as pd
-        from datetime import datetime, timedelta
-        
-        # Generate mock klines data
-        now = datetime.now()
-        mock_data = []
-        base_price = 95000.0 if symbol.upper() == "BTCUSDT" else 3200.0
-        
-        for i in range(limit):
-            timestamp = now - timedelta(hours=i)
-            variation = (i % 10 - 5) * 0.002  # ±1% variation
-            open_price = base_price * (1 + variation)
-            close_price = base_price * (1 + variation + 0.001)
-            high_price = max(open_price, close_price) * 1.002
-            low_price = min(open_price, close_price) * 0.998
-            
-            mock_data.append({
-                "timestamp": timestamp.isoformat(),
-                "open": open_price,
-                "high": high_price,
-                "low": low_price,
-                "close": close_price,
-                "volume": 1000 + i * 10
-            })
-        
-        mock_data.reverse()  # Oldest first
-        return {
-            "symbol": symbol.upper(),
-            "interval": interval,
-            "data": mock_data,
-            "mock": True
-        }
     except Exception as e:
         logger.error(f"Failed to get klines for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get klines: {str(e)}")

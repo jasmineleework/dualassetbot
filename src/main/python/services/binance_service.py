@@ -17,6 +17,7 @@ class BinanceService:
         """Initialize Binance client"""
         self.client = None
         self._initialized = False
+        self._testnet_adapter = None
     
     def _initialize_client(self):
         """Initialize Binance API client"""
@@ -103,6 +104,13 @@ class BinanceService:
             
         except Exception as e:
             logger.error(f"Failed to get price for {symbol}: {e}")
+            # For testnet, try alternative method
+            if settings.binance_testnet:
+                try:
+                    ticker = self.client.get_ticker(symbol=symbol)
+                    return float(ticker['lastPrice'])
+                except:
+                    pass
             raise
     
     def get_klines(self, symbol: str, interval: str = '1h', limit: int = 100) -> pd.DataFrame:
@@ -149,57 +157,73 @@ class BinanceService:
     
     def get_dual_investment_products(self) -> List[Dict[str, Any]]:
         """
-        Get available dual investment products
+        Generate dual investment products based on real market data
         
-        Note: This is a placeholder as Binance doesn't provide direct API for dual investment.
-        In production, you might need to:
-        1. Use web scraping or reverse engineering
-        2. Use Binance Savings API endpoints if they become available
-        3. Manually maintain a list of available products
+        Uses TestnetDualProductAdapter for realistic product generation
         """
-        logger.warning("Dual investment API not directly available. Using mock data.")
-        
-        # Mock data for development
-        mock_products = [
-            {
-                'id': 'BTC-USDT-BUYLOW-20240115',
-                'asset': 'BTC',
-                'currency': 'USDT',
-                'type': 'BUY_LOW',
-                'strike_price': 42000,
-                'apy': 0.25,  # 25% APY
-                'term_days': 7,
-                'min_amount': 100,
-                'max_amount': 10000,
-                'settlement_date': datetime.now() + timedelta(days=7)
-            },
-            {
-                'id': 'BTC-USDT-SELLHIGH-20240115',
-                'asset': 'BTC',
-                'currency': 'USDT',
-                'type': 'SELL_HIGH',
-                'strike_price': 45000,
-                'apy': 0.20,  # 20% APY
-                'term_days': 7,
-                'min_amount': 0.001,
-                'max_amount': 1,
-                'settlement_date': datetime.now() + timedelta(days=7)
-            },
-            {
-                'id': 'ETH-USDT-BUYLOW-20240115',
-                'asset': 'ETH',
-                'currency': 'USDT',
-                'type': 'BUY_LOW',
-                'strike_price': 2200,
-                'apy': 0.22,  # 22% APY
-                'term_days': 7,
-                'min_amount': 100,
-                'max_amount': 10000,
-                'settlement_date': datetime.now() + timedelta(days=7)
-            }
-        ]
-        
-        return mock_products
+        try:
+            self.ensure_initialized()
+            
+            # Use testnet adapter for better product generation
+            if settings.binance_testnet:
+                if not self._testnet_adapter:
+                    from services.testnet_dual_product_adapter import TestnetDualProductAdapter
+                    self._testnet_adapter = TestnetDualProductAdapter(self)
+                
+                products = self._testnet_adapter.get_all_products()
+                if products:
+                    logger.info(f"Generated {len(products)} dual investment products from testnet data")
+                    return products
+            
+            # Fallback to simple generation for non-testnet
+            products = []
+            symbols = ['BTCUSDT', 'ETHUSDT']
+            
+            for symbol in symbols:
+                try:
+                    current_price = self.get_symbol_price(symbol)
+                    asset = symbol.replace('USDT', '')
+                    stats = self.get_24hr_ticker_stats(symbol)
+                    volatility = abs(stats['price_change_percent'])
+                    
+                    # Generate basic products
+                    products.append({
+                        'id': f'{asset}-USDT-BUYLOW-{datetime.now().strftime("%Y%m%d")}',
+                        'asset': asset,
+                        'currency': 'USDT',
+                        'type': 'BUY_LOW',
+                        'strike_price': round(current_price * 0.95, 2),
+                        'apy': round(min(0.15 + volatility * 0.01, 0.50), 4),
+                        'term_days': 7,
+                        'min_amount': 100,
+                        'max_amount': 10000,
+                        'settlement_date': datetime.now() + timedelta(days=7),
+                        'current_price': current_price
+                    })
+                    
+                    products.append({
+                        'id': f'{asset}-USDT-SELLHIGH-{datetime.now().strftime("%Y%m%d")}',
+                        'asset': asset,
+                        'currency': 'USDT',
+                        'type': 'SELL_HIGH',
+                        'strike_price': round(current_price * 1.05, 2),
+                        'apy': round(min(0.12 + volatility * 0.008, 0.40), 4),
+                        'term_days': 7,
+                        'min_amount': 0.001 if asset == 'BTC' else 0.01,
+                        'max_amount': 1 if asset == 'BTC' else 10,
+                        'settlement_date': datetime.now() + timedelta(days=7),
+                        'current_price': current_price
+                    })
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to generate products for {symbol}: {e}")
+                    continue
+            
+            return products if products else []
+            
+        except Exception as e:
+            logger.error(f"Failed to generate dual investment products: {e}")
+            return []
     
     def subscribe_dual_investment(self, product_id: str, amount: float) -> Dict[str, Any]:
         """
