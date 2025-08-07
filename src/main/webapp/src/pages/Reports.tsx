@@ -91,14 +91,22 @@ const Reports: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [investmentsRes, summaryRes] = await Promise.all([
+      const results = await Promise.allSettled([
         apiService.getInvestments(undefined, 100, 0),
         apiService.getPortfolioSummary()
       ]);
 
-      setInvestments(investmentsRes.investments);
-      setPortfolioSummary(summaryRes);
-      generateReportData(investmentsRes.investments);
+      let investments = [];
+      if (results[0].status === 'fulfilled') {
+        investments = results[0].value.investments;
+        setInvestments(investments);
+      }
+      
+      if (results[1].status === 'fulfilled') {
+        setPortfolioSummary(results[1].value);
+      }
+      
+      generateReportData(investments);
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to load reports data';

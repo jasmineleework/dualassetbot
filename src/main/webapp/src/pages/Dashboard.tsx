@@ -53,18 +53,31 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      // Fetch all data in parallel if connected
-      const [priceRes, analysisRes, productsRes, statsRes] = await Promise.all([
+      // Fetch all data using Promise.allSettled to handle partial failures
+      const results = await Promise.allSettled([
         apiService.getPrice('BTCUSDT'),
         apiService.getMarketAnalysis('BTCUSDT'),
         apiService.getDualInvestmentProducts(),
         apiService.get24hrStats('BTCUSDT')
       ]);
 
-      setBtcPrice(priceRes.price);
-      setMarketAnalysis(analysisRes);
-      setProducts(productsRes);
-      setStats24hr(statsRes);
+      // Process results even if some fail
+      if (results[0].status === 'fulfilled') {
+        setBtcPrice(results[0].value.price);
+      }
+      
+      if (results[1].status === 'fulfilled') {
+        setMarketAnalysis(results[1].value);
+      }
+      
+      if (results[2].status === 'fulfilled') {
+        setProducts(results[2].value);
+      }
+      
+      if (results[3].status === 'fulfilled') {
+        setStats24hr(results[3].value);
+      }
+      
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');

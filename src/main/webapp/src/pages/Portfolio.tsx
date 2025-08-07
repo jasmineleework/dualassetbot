@@ -49,14 +49,19 @@ const Portfolio: React.FC = () => {
       setRefreshing(true);
       setError('');
 
-      // Fetch portfolio summary and recent investments
-      const [summary, investmentsRes] = await Promise.all([
+      // Fetch portfolio summary and recent investments using allSettled
+      const results = await Promise.allSettled([
         apiService.getPortfolioSummary(),
         apiService.getInvestments(undefined, 50, 0)
       ]);
 
-      setPortfolioSummary(summary);
-      setAllInvestments(investmentsRes.investments);
+      if (results[0].status === 'fulfilled') {
+        setPortfolioSummary(results[0].value);
+      }
+      
+      if (results[1].status === 'fulfilled') {
+        setAllInvestments(results[1].value.investments);
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to load portfolio data';
       setError(errorMsg);

@@ -65,19 +65,30 @@ const AutoTrading: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [settingsRes, tasksRes, btcRecs, ethRecs] = await Promise.all([
+      const results = await Promise.allSettled([
         apiService.getTradingSettings(),
         apiService.getActiveTasks(),
         apiService.getAIRecommendations('BTCUSDT', 5),
         apiService.getAIRecommendations('ETHUSDT', 5)
       ]);
 
-      setSettings(settingsRes);
-      setActiveTasks(tasksRes.active_tasks);
-      setRecommendations([...btcRecs.recommendations, ...ethRecs.recommendations]);
-
-      // Update form with current settings
-      form.setFieldsValue(settingsRes);
+      if (results[0].status === 'fulfilled') {
+        setSettings(results[0].value);
+        form.setFieldsValue(results[0].value);
+      }
+      
+      if (results[1].status === 'fulfilled') {
+        setActiveTasks(results[1].value.active_tasks);
+      }
+      
+      const recommendations = [];
+      if (results[2].status === 'fulfilled') {
+        recommendations.push(...results[2].value.recommendations);
+      }
+      if (results[3].status === 'fulfilled') {
+        recommendations.push(...results[3].value.recommendations);
+      }
+      setRecommendations(recommendations);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to load data';
       message.error(errorMsg);

@@ -107,20 +107,28 @@ const MarketAnalysisPage: React.FC = () => {
       setRefreshing(true);
       
       // Fetch all data in parallel
-      const [analysisRes, priceRes, productsRes, statsRes] = await Promise.all([
+      const results = await Promise.allSettled([
         apiService.getMarketAnalysis(selectedSymbol),
         apiService.getPrice(selectedSymbol),
         apiService.getDualInvestmentProducts(),
         apiService.get24hrStats(selectedSymbol)
       ]);
 
-      setMarketAnalysis(analysisRes);
-      setCurrentPrice(priceRes.price);
-      setPrice24hChange(analysisRes.price_change_24h);
-      setProducts(productsRes.filter(p => 
-        p.asset === selectedSymbol.replace('USDT', '') || 
-        p.currency === selectedSymbol.replace('USDT', '')
-      ));
+      if (results[0].status === 'fulfilled') {
+        setMarketAnalysis(results[0].value);
+        setPrice24hChange(results[0].value.price_change_24h);
+      }
+      
+      if (results[1].status === 'fulfilled') {
+        setCurrentPrice(results[1].value.price);
+      }
+      
+      if (results[2].status === 'fulfilled') {
+        setProducts(results[2].value.filter(p => 
+          p.asset === selectedSymbol.replace('USDT', '') || 
+          p.currency === selectedSymbol.replace('USDT', '')
+        ));
+      }
 
       // Generate technical indicators from analysis
       const indicators: TechnicalIndicator[] = [
