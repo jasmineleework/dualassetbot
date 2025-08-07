@@ -1,0 +1,118 @@
+.portfolio-container {
+  padding: 24px;
+}
+
+.portfolio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.portfolio-summary-cards {
+  margin-bottom: 24px;
+}
+
+.portfolio-summary-cards .ant-card {
+  text-align: center;
+}
+
+.portfolio-status-breakdown {
+  margin-bottom: 24px;
+}
+
+.portfolio-status-breakdown .ant-statistic {
+  text-align: center;
+}
+
+.investment-table-container {
+  background: white;
+  border-radius: 8px;
+}
+
+.investment-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+}
+
+.investment-detail-modal .ant-modal-body {
+  padding: 24px;
+}
+
+.investment-detail-row {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.investment-detail-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.investment-status-tag {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.investment-return-positive {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.investment-return-negative {
+  color: #f5222d;
+  font-weight: 600;
+}
+
+.investment-return-neutral {
+  color: #666;
+}
+
+.portfolio-loading {
+  text-align: center;
+  margin-top: 100px;
+}
+
+.portfolio-error {
+  margin: 24px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .portfolio-container {
+    padding: 16px;
+  }
+  
+  .portfolio-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .portfolio-summary-cards .ant-col {
+    margin-bottom: 16px;
+  }
+  
+  .portfolio-status-breakdown .ant-col {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .investment-table-container {
+    overflow-x: auto;
+  }
+  
+  .ant-table-tbody > tr > td {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  .ant-table-thead > tr > th {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+}

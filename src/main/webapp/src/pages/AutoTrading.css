@@ -1,0 +1,237 @@
+.auto-trading-container {
+  padding: 24px;
+}
+
+.auto-trading-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.auto-trading-main-controls {
+  margin-bottom: 24px;
+}
+
+.auto-trading-main-controls .ant-card {
+  text-align: center;
+}
+
+.auto-trading-switch-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.auto-trading-quick-actions {
+  margin-bottom: 24px;
+}
+
+.auto-trading-quick-actions .ant-btn {
+  height: 60px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.auto-trading-tabs .ant-tabs-content-holder {
+  background: white;
+  border-radius: 8px;
+}
+
+.auto-trading-recommendations-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.auto-trading-recommendations-table .ant-table-tbody > tr > td {
+  font-size: 13px;
+}
+
+.auto-trading-task-list .ant-list-item {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.auto-trading-task-list .ant-list-item:last-child {
+  border-bottom: none;
+}
+
+.auto-trading-settings-modal .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.auto-trading-settings-modal .ant-form-item-label {
+  font-weight: 600;
+}
+
+.auto-trading-status-enabled {
+  color: #52c41a;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.auto-trading-status-disabled {
+  color: #d9d9d9;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.auto-trading-recommendation-high-score {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+}
+
+.auto-trading-recommendation-medium-score {
+  background: linear-gradient(90deg, #faad14 0%, #ffc53d 100%);
+}
+
+.auto-trading-recommendation-low-score {
+  background: linear-gradient(90deg, #f5222d 0%, #ff4d4f 100%);
+}
+
+.auto-trading-empty-state {
+  text-align: center;
+  padding: 40px;
+}
+
+.auto-trading-empty-state .anticon {
+  font-size: 48px;
+  color: #d9d9d9;
+  margin-bottom: 16px;
+}
+
+/* Risk Level Colors */
+.risk-level-1, .risk-level-2, .risk-level-3 {
+  color: #52c41a; /* Conservative - Green */
+}
+
+.risk-level-4, .risk-level-5, .risk-level-6, .risk-level-7 {
+  color: #faad14; /* Moderate - Orange */
+}
+
+.risk-level-8, .risk-level-9, .risk-level-10 {
+  color: #f5222d; /* Aggressive - Red */
+}
+
+/* Task Status Indicators */
+.task-running {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.task-icon-market {
+  color: #1890ff;
+}
+
+.task-icon-ai {
+  color: #722ed1;
+}
+
+.task-icon-trading {
+  color: #52c41a;
+}
+
+.task-icon-default {
+  color: #faad14;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .auto-trading-container {
+    padding: 16px;
+  }
+  
+  .auto-trading-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .auto-trading-quick-actions .ant-col {
+    margin-bottom: 16px;
+  }
+  
+  .auto-trading-quick-actions .ant-btn {
+    height: 50px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  .auto-trading-recommendations-table {
+    font-size: 11px;
+  }
+  
+  .auto-trading-recommendations-table .ant-table-thead > tr > th,
+  .auto-trading-recommendations-table .ant-table-tbody > tr > td {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  
+  .auto-trading-task-list .ant-list-item {
+    padding: 12px 16px;
+  }
+}
+
+/* AI Score Progress Bars */
+.ai-score-high .ant-progress-bg {
+  background: #52c41a !important;
+}
+
+.ai-score-medium .ant-progress-bg {
+  background: #faad14 !important;
+}
+
+.ai-score-low .ant-progress-bg {
+  background: #f5222d !important;
+}
+
+/* Modal Enhancements */
+.auto-trading-settings-modal .ant-modal-header {
+  background: linear-gradient(90deg, #1890ff 0%, #36cfc9 100%);
+}
+
+.auto-trading-settings-modal .ant-modal-title {
+  color: white;
+  font-weight: 600;
+}
+
+/* Badge Styling */
+.ant-badge .ant-badge-count {
+  background-color: #52c41a;
+  border-color: #52c41a;
+}
+
+/* Switch Styling */
+.ant-switch-checked {
+  background-color: #52c41a;
+}
+
+/* Quick Action Buttons */
+.auto-trading-quick-actions .ant-btn-primary {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+}
+
+.auto-trading-quick-actions .ant-btn-primary:hover {
+  background: linear-gradient(90deg, #73d13d 0%, #52c41a 100%);
+  box-shadow: 0 6px 16px rgba(82, 196, 26, 0.4);
+}
+
+.auto-trading-quick-actions .ant-btn-default:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
