@@ -7,12 +7,14 @@ import {
   RobotOutlined,
   ThunderboltOutlined,
   WalletOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  MonitorOutlined
 } from '@ant-design/icons';
 import Dashboard from './pages/Dashboard';
 import AIRecommendations from './pages/AIRecommendations';
 import Portfolio from './pages/Portfolio';
 import AutoTrading from './pages/AutoTrading';
+import SystemMonitor from './pages/SystemMonitor';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -29,6 +31,8 @@ function App() {
         return <Portfolio />;
       case 'auto-trading':
         return <AutoTrading />;
+      case 'system-monitor':
+        return <SystemMonitor />;
       case 'ai-recommendations':
         return <AIRecommendations />;
       case 'market':
@@ -65,6 +69,9 @@ function App() {
               </Menu.Item>
               <Menu.Item key="auto-trading" icon={<PlayCircleOutlined />}>
                 Auto Trading
+              </Menu.Item>
+              <Menu.Item key="system-monitor" icon={<MonitorOutlined />}>
+                System Monitor
               </Menu.Item>
               <Menu.Item key="ai-recommendations" icon={<ThunderboltOutlined />}>
                 AI Recommendations

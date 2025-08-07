@@ -1,0 +1,375 @@
+.system-monitor-container {
+  padding: 24px;
+}
+
+.system-monitor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.health-card {
+  height: 100%;
+}
+
+.health-card .ant-card-body {
+  padding: 20px;
+}
+
+.health-card .ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.health-card .ant-statistic-content {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Health Status Colors */
+.health-status-healthy {
+  color: #52c41a;
+}
+
+.health-status-degraded {
+  color: #faad14;
+}
+
+.health-status-unhealthy,
+.health-status-critical {
+  color: #f5222d;
+}
+
+.health-status-unknown {
+  color: #d9d9d9;
+}
+
+/* System Statistics Cards */
+.system-stats-card {
+  height: 100%;
+}
+
+.system-stats-card .ant-statistic {
+  text-align: center;
+}
+
+.system-stats-card .ant-statistic-title {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.system-stats-card .ant-statistic-content {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Tab Content */
+.system-monitor-tabs .ant-tabs-content-holder {
+  background: white;
+  border-radius: 8px;
+}
+
+.system-monitor-tabs .ant-tabs-tab {
+  font-weight: 600;
+}
+
+/* Worker Table */
+.worker-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.worker-table .ant-table-tbody > tr > td {
+  font-size: 13px;
+  padding: 12px 16px;
+}
+
+/* Active Task Table */
+.active-task-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.active-task-table .ant-table-tbody > tr > td {
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+/* Scheduled Task List */
+.scheduled-task-list .ant-list-item {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.scheduled-task-list .ant-list-item:last-child {
+  border-bottom: none;
+}
+
+.scheduled-task-list .ant-list-item-meta-avatar {
+  font-size: 18px;
+}
+
+.scheduled-task-list .ant-list-item-meta-title {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.scheduled-task-list .ant-list-item-meta-description {
+  font-size: 12px;
+}
+
+/* Timeline Styling */
+.health-check-timeline .ant-timeline-item-content {
+  font-size: 13px;
+}
+
+/* Performance Metrics */
+.performance-metrics .ant-progress {
+  margin-bottom: 16px;
+}
+
+.performance-metrics .ant-typography {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+/* Task Status Icons */
+.task-icon-market {
+  color: #1890ff;
+}
+
+.task-icon-ai {
+  color: #722ed1;
+}
+
+.task-icon-trading {
+  color: #52c41a;
+}
+
+.task-icon-monitoring {
+  color: #faad14;
+}
+
+.task-icon-default {
+  color: #8c8c8c;
+}
+
+/* Badge Styling */
+.system-monitor-badge .ant-badge-count {
+  background-color: #1890ff;
+}
+
+/* Empty State */
+.system-monitor-empty {
+  text-align: center;
+  padding: 40px;
+}
+
+.system-monitor-empty .anticon {
+  font-size: 48px;
+  color: #d9d9d9;
+  margin-bottom: 16px;
+}
+
+/* Health Check Button */
+.health-check-button {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
+}
+
+.health-check-button:hover {
+  background: linear-gradient(90deg, #73d13d 0%, #52c41a 100%);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.4);
+}
+
+/* Refresh Button */
+.refresh-button:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+/* Loading States */
+.system-monitor-loading {
+  text-align: center;
+  margin-top: 100px;
+}
+
+.system-monitor-loading .ant-spin {
+  margin-bottom: 16px;
+}
+
+/* Alert Styling */
+.system-monitor-alert {
+  margin-bottom: 24px;
+  border-radius: 8px;
+}
+
+/* Card Hover Effects */
+.health-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.system-stats-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .system-monitor-container {
+    padding: 16px;
+  }
+  
+  .system-monitor-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .health-card .ant-card-body {
+    padding: 16px;
+  }
+  
+  .system-stats-card .ant-card-body {
+    padding: 16px;
+  }
+  
+  .worker-table .ant-table-thead > tr > th,
+  .worker-table .ant-table-tbody > tr > td {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .active-task-table .ant-table-thead > tr > th,
+  .active-task-table .ant-table-tbody > tr > td {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .scheduled-task-list .ant-list-item {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .system-monitor-header .ant-typography-title {
+    font-size: 18px;
+  }
+  
+  .health-card .ant-statistic-content {
+    font-size: 16px;
+  }
+  
+  .system-stats-card .ant-statistic-content {
+    font-size: 20px;
+  }
+  
+  .worker-table,
+  .active-task-table {
+    font-size: 10px;
+  }
+  
+  .scheduled-task-list .ant-list-item-meta-title {
+    font-size: 12px;
+  }
+  
+  .scheduled-task-list .ant-list-item-meta-description {
+    font-size: 11px;
+  }
+}
+
+/* Animation for Running Tasks */
+.task-running {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Progress Bar Customization */
+.health-progress .ant-progress-bg {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+}
+
+.performance-progress .ant-progress-bg {
+  background: linear-gradient(90deg, #1890ff 0%, #36cfc9 100%);
+}
+
+.warning-progress .ant-progress-bg {
+  background: linear-gradient(90deg, #faad14 0%, #ffc53d 100%);
+}
+
+/* Tab Pane Styling */
+.system-monitor-tabs .ant-tabs-tabpane {
+  padding: 0;
+}
+
+.system-monitor-tabs .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Worker Status Indicators */
+.worker-status-online {
+  color: #52c41a;
+}
+
+.worker-status-offline {
+  color: #f5222d;
+}
+
+/* Task Priority Tags */
+.task-priority-high {
+  background-color: #f5222d;
+  border-color: #f5222d;
+}
+
+.task-priority-medium {
+  background-color: #faad14;
+  border-color: #faad14;
+}
+
+.task-priority-low {
+  background-color: #52c41a;
+  border-color: #52c41a;
+}
+
+/* System Info Cards */
+.system-info-inner-card .ant-card-head {
+  padding: 12px 16px;
+  min-height: auto;
+}
+
+.system-info-inner-card .ant-card-head-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.system-info-inner-card .ant-card-body {
+  padding: 16px;
+}
+
+/* Health Timeline */
+.system-monitor-timeline .ant-timeline-item-tail {
+  border-left-color: #d9d9d9;
+}
+
+.system-monitor-timeline .ant-timeline-item-head {
+  border-color: #52c41a;
+  background-color: #52c41a;
+}
