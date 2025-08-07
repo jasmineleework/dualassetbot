@@ -1,0 +1,453 @@
+.settings-container {
+  padding: 24px;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* Tab Styling */
+.settings-tabs .ant-tabs-tab {
+  font-weight: 600;
+  padding: 12px 16px;
+}
+
+.settings-tabs .ant-tabs-tab .anticon {
+  margin-right: 8px;
+}
+
+.settings-tabs .ant-tabs-content-holder {
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+}
+
+/* Card Styling */
+.settings-card {
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+}
+
+.settings-card .ant-card-head {
+  background: linear-gradient(90deg, #fafafa 0%, #f0f0f0 100%);
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.settings-card .ant-card-head-title {
+  font-weight: 600;
+  color: #262626;
+}
+
+/* Form Styling */
+.settings-form .ant-form-item-label > label {
+  font-weight: 600;
+  color: #262626;
+}
+
+.settings-form .ant-form-item-explain {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Alert Messages */
+.settings-alert {
+  margin-bottom: 24px;
+  border-radius: 8px;
+}
+
+/* Switch Controls */
+.settings-switch-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.settings-switch-container .ant-switch {
+  margin-right: 12px;
+}
+
+.settings-switch-enabled {
+  background-color: #52c41a;
+}
+
+.settings-switch-disabled {
+  background-color: #d9d9d9;
+}
+
+/* Input Controls */
+.settings-input {
+  border-radius: 6px;
+  border-color: #d9d9d9;
+}
+
+.settings-input:hover {
+  border-color: #1890ff;
+}
+
+.settings-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.settings-input-number {
+  width: 100%;
+  border-radius: 6px;
+}
+
+.settings-select {
+  border-radius: 6px;
+}
+
+/* Button Styling */
+.settings-button-primary {
+  background: linear-gradient(90deg, #1890ff 0%, #36cfc9 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  font-weight: 600;
+}
+
+.settings-button-primary:hover {
+  background: linear-gradient(90deg, #36cfc9 0%, #1890ff 100%);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+}
+
+.settings-button-danger {
+  background: linear-gradient(90deg, #f5222d 0%, #ff4d4f 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(245, 34, 45, 0.3);
+  color: white;
+  font-weight: 600;
+}
+
+.settings-button-danger:hover {
+  background: linear-gradient(90deg, #ff4d4f 0%, #f5222d 100%);
+  box-shadow: 0 4px 12px rgba(245, 34, 45, 0.4);
+  color: white;
+}
+
+.settings-button-default:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+/* API Settings */
+.settings-api-credentials {
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-api-test-success {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.settings-api-test-failed {
+  color: #f5222d;
+  font-weight: 600;
+}
+
+/* Security Settings */
+.settings-security-card {
+  border-left: 4px solid #722ed1;
+}
+
+.settings-ip-whitelist {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+}
+
+.settings-audit-log .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.settings-audit-log .ant-table-tbody > tr > td {
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+/* Notification Settings */
+.settings-notification-card {
+  border-left: 4px solid #faad14;
+}
+
+.settings-notification-types {
+  margin-top: 16px;
+}
+
+.settings-notification-types .ant-select-selector {
+  border-radius: 6px;
+}
+
+/* System Health */
+.settings-system-health {
+  text-align: center;
+  padding: 24px;
+  background: #fafafa;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.settings-system-health .ant-progress-circle {
+  margin: 0 16px;
+}
+
+.settings-system-health .health-metric {
+  display: inline-block;
+  margin: 0 24px;
+  text-align: center;
+}
+
+.settings-system-health .health-metric-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+}
+
+/* Loading States */
+.settings-loading {
+  text-align: center;
+  margin-top: 100px;
+}
+
+.settings-loading .ant-spin {
+  margin-bottom: 16px;
+}
+
+/* Import/Export */
+.settings-import-export {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.settings-export-button {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
+  color: white;
+  font-weight: 600;
+}
+
+.settings-export-button:hover {
+  background: linear-gradient(90deg, #73d13d 0%, #52c41a 100%);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.4);
+  color: white;
+}
+
+/* Risk Level Indicators */
+.risk-level-conservative {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.risk-level-moderate {
+  color: #faad14;
+  font-weight: 600;
+}
+
+.risk-level-aggressive {
+  color: #f5222d;
+  font-weight: 600;
+}
+
+/* Form Validation */
+.settings-form-error .ant-form-item-has-error .ant-input {
+  border-color: #f5222d;
+}
+
+.settings-form-error .ant-form-item-explain {
+  color: #f5222d;
+}
+
+.settings-form-success .ant-form-item-has-success .ant-input {
+  border-color: #52c41a;
+}
+
+/* Modal Styling */
+.settings-modal .ant-modal-header {
+  background: linear-gradient(90deg, #f5222d 0%, #ff4d4f 100%);
+}
+
+.settings-modal .ant-modal-title {
+  color: white;
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .settings-container {
+    padding: 16px;
+  }
+  
+  .settings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .settings-header .ant-space {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .settings-tabs .ant-tabs-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .settings-card .ant-card-body {
+    padding: 16px;
+  }
+  
+  .settings-form .ant-form-item {
+    margin-bottom: 16px;
+  }
+  
+  .settings-system-health .health-metric {
+    display: block;
+    margin: 16px 0;
+  }
+  
+  .settings-audit-log .ant-table-thead > tr > th,
+  .settings-audit-log .ant-table-tbody > tr > td {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 576px) {
+  .settings-header .ant-typography-title {
+    font-size: 18px;
+  }
+  
+  .settings-header .ant-space .ant-btn {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+  
+  .settings-tabs .ant-tabs-tab {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .settings-tabs .ant-tabs-tab .anticon {
+    margin-right: 4px;
+    font-size: 12px;
+  }
+  
+  .settings-api-credentials,
+  .settings-import-export {
+    padding: 12px;
+  }
+  
+  .settings-system-health {
+    padding: 16px;
+  }
+  
+  .settings-system-health .ant-progress-circle {
+    margin: 8px;
+  }
+}
+
+/* Animation Effects */
+.settings-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.settings-switch-container:hover .ant-switch {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Status Indicators */
+.settings-status-online {
+  color: #52c41a;
+}
+
+.settings-status-offline {
+  color: #f5222d;
+}
+
+.settings-status-warning {
+  color: #faad14;
+}
+
+/* Configuration Groups */
+.settings-config-group {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #fafafa;
+}
+
+.settings-config-group-title {
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 12px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Advanced Settings */
+.settings-advanced-toggle {
+  margin-bottom: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.settings-advanced-content {
+  background: #f6f6f6;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+/* Tooltip Styling */
+.settings-tooltip .ant-tooltip-inner {
+  background-color: #262626;
+  color: white;
+  border-radius: 6px;
+}
+
+/* Progress Indicators */
+.settings-progress-success .ant-progress-bg {
+  background: #52c41a;
+}
+
+.settings-progress-warning .ant-progress-bg {
+  background: #faad14;
+}
+
+.settings-progress-danger .ant-progress-bg {
+  background: #f5222d;
+}
+
+/* Tag Styling */
+.settings-tag-active {
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+  color: #52c41a;
+}
+
+.settings-tag-inactive {
+  background-color: #fff2f0;
+  border-color: #ffccc7;
+  color: #f5222d;
+}

@@ -17,6 +17,7 @@ import Portfolio from './pages/Portfolio';
 import AutoTrading from './pages/AutoTrading';
 import SystemMonitor from './pages/SystemMonitor';
 import Reports from './pages/Reports';
+import Settings from './pages/Settings';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -42,7 +43,7 @@ function App() {
       case 'market':
         return <div style={{ padding: 24 }}>市场分析功能开发中...</div>;
       case 'settings':
-        return <div style={{ padding: 24 }}>设置功能开发中...</div>;
+        return <Settings />;
       default:
         return <Dashboard />;
     }
