@@ -1,0 +1,359 @@
+/* Responsive Design Styles for Mobile Optimization */
+
+/* Mobile breakpoints */
+@media (max-width: 768px) {
+  /* Global adjustments */
+  .ant-layout-header {
+    padding: 0 12px;
+  }
+
+  .ant-layout-sider {
+    position: fixed !important;
+    height: 100vh;
+    z-index: 999;
+  }
+
+  .ant-layout-content {
+    margin-left: 0 !important;
+    padding: 12px !important;
+  }
+
+  /* Dashboard adjustments */
+  .dashboard-header {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-header h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  /* Card adjustments */
+  .ant-card {
+    margin-bottom: 12px;
+  }
+
+  .ant-card-body {
+    padding: 12px;
+  }
+
+  /* Table adjustments */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .ant-table {
+    min-width: 600px;
+  }
+
+  /* Statistics adjustments */
+  .ant-statistic-title {
+    font-size: 12px;
+  }
+
+  .ant-statistic-content {
+    font-size: 20px;
+  }
+
+  /* Form adjustments */
+  .ant-form-item-label {
+    padding-bottom: 4px;
+  }
+
+  .ant-input-number,
+  .ant-select,
+  .ant-picker {
+    width: 100% !important;
+  }
+
+  /* Button groups */
+  .ant-space-horizontal {
+    flex-wrap: wrap;
+  }
+
+  .ant-btn {
+    margin-bottom: 8px;
+  }
+
+  /* Modal adjustments */
+  .ant-modal {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+
+  .ant-modal-body {
+    padding: 16px;
+  }
+
+  /* Tabs adjustments */
+  .ant-tabs-nav {
+    margin-bottom: 12px;
+  }
+
+  .ant-tabs-tab {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  /* Timeline adjustments */
+  .ant-timeline-item-content {
+    font-size: 14px;
+    padding-left: 12px;
+  }
+
+  /* Progress adjustments */
+  .ant-progress-circle {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  /* Alert adjustments */
+  .ant-alert {
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+
+  /* Page specific adjustments */
+  
+  /* Portfolio page */
+  .portfolio-container .ant-col {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+
+  /* Market Analysis page */
+  .market-analysis-container .market-analysis-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .market-analysis-container .ant-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  /* Auto Trading page */
+  .auto-trading-container .auto-trading-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* System Monitor page */
+  .system-monitor-container .system-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Reports page */
+  .reports-container .reports-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reports-container .ant-table-pagination {
+    margin-top: 12px;
+  }
+
+  /* Settings page */
+  .settings-container .settings-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-container .ant-tabs-content {
+    padding: 0;
+  }
+
+  /* AIChat component */
+  .ai-chat-container {
+    height: calc(100vh - 120px);
+  }
+
+  .ai-chat-messages {
+    height: calc(100% - 140px);
+  }
+
+  /* Market Report component */
+  .market-report-card {
+    font-size: 14px;
+  }
+}
+
+/* Tablet breakpoints */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Adjust columns for tablet */
+  .ant-col-8 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .ant-col-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  /* Dashboard adjustments */
+  .dashboard-container .ant-col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  /* Table adjustments */
+  .ant-table {
+    font-size: 14px;
+  }
+
+  /* Card grid adjustments */
+  .ant-card-grid {
+    width: 50% !important;
+  }
+}
+
+/* Small desktop breakpoints */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  /* Minor adjustments for small desktops */
+  .ant-layout-sider {
+    width: 200px !important;
+    min-width: 200px !important;
+    max-width: 200px !important;
+  }
+
+  .ant-layout-content {
+    margin-left: 200px;
+  }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+  /* Larger touch targets */
+  .ant-btn {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+
+  .ant-input,
+  .ant-input-number,
+  .ant-select-selector {
+    min-height: 44px;
+  }
+
+  .ant-switch {
+    min-width: 56px;
+    height: 28px;
+  }
+
+  .ant-checkbox-wrapper,
+  .ant-radio-wrapper {
+    padding: 8px;
+  }
+
+  /* Increase spacing for touch */
+  .ant-space-item {
+    margin-bottom: 8px;
+  }
+
+  .ant-form-item {
+    margin-bottom: 20px;
+  }
+}
+
+/* Orientation specific styles */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Optimize for landscape mobile */
+  .ant-layout-header {
+    display: none;
+  }
+
+  .ant-layout-content {
+    padding-top: 8px !important;
+  }
+
+  .dashboard-header,
+  .market-analysis-header,
+  .auto-trading-header,
+  .reports-header,
+  .settings-header {
+    padding: 8px 0;
+  }
+
+  .ant-card {
+    margin-bottom: 8px;
+  }
+}
+
+/* High resolution displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure crisp borders and text */
+  .ant-card,
+  .ant-table,
+  .ant-modal {
+    border-width: 0.5px;
+  }
+
+  /* Optimize icons for retina */
+  .anticon {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Print styles */
+@media print {
+  /* Hide unnecessary elements */
+  .ant-layout-sider,
+  .ant-layout-header,
+  .ant-btn,
+  .ant-switch,
+  .ant-select,
+  .ant-input-number,
+  .ant-pagination {
+    display: none !important;
+  }
+
+  /* Optimize for printing */
+  .ant-layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .ant-card {
+    border: 1px solid #000;
+    page-break-inside: avoid;
+  }
+
+  .ant-table {
+    font-size: 10pt;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .ant-layout {
+    background: #141414;
+  }
+
+  .ant-card {
+    background: #1f1f1f;
+    border-color: #303030;
+  }
+
+  .ant-table {
+    background: #1f1f1f;
+  }
+
+  .ant-modal-content {
+    background: #1f1f1f;
+  }
+}

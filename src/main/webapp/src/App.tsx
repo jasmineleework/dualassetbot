@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ConfigProvider, Layout, Typography, Menu, notification } from 'antd';
+import { ConfigProvider, Layout, Typography, Menu, notification, Button, Drawer } from 'antd';
 import { 
   DashboardOutlined, 
   LineChartOutlined, 
@@ -10,7 +10,8 @@ import {
   PlayCircleOutlined,
   MonitorOutlined,
   FileTextOutlined,
-  CommentOutlined
+  CommentOutlined,
+  MenuOutlined
 } from '@ant-design/icons';
 import Dashboard from './pages/Dashboard';
 import AIRecommendations from './pages/AIRecommendations';
@@ -24,14 +25,26 @@ import AIChat from './pages/AIChat';
 import wsService from './services/websocket';
 import { useSystemAlerts } from './hooks/useWebSocket';
 import './App.css';
+import './styles/responsive.css';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
 
 function App() {
   const [selectedKey, setSelectedKey] = useState('dashboard');
+  const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const { alerts } = useSystemAlerts(10);
   
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Initialize WebSocket connection
   useEffect(() => {
     wsService.connect().catch(console.error);
@@ -77,58 +90,88 @@ function App() {
     }
   };
 
+  const menuItems = (
+    <Menu
+      mode="inline"
+      selectedKeys={[selectedKey]}
+      onSelect={({ key }) => {
+        setSelectedKey(key);
+        setMobileMenuVisible(false);
+      }}
+      style={{ height: '100%', borderRight: 0 }}
+    >
+      <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
+        Dashboard
+      </Menu.Item>
+      <Menu.Item key="portfolio" icon={<WalletOutlined />}>
+        Portfolio
+      </Menu.Item>
+      <Menu.Item key="auto-trading" icon={<PlayCircleOutlined />}>
+        Auto Trading
+      </Menu.Item>
+      <Menu.Item key="system-monitor" icon={<MonitorOutlined />}>
+        System Monitor
+      </Menu.Item>
+      <Menu.Item key="reports" icon={<FileTextOutlined />}>
+        Reports
+      </Menu.Item>
+      <Menu.Item key="ai-recommendations" icon={<ThunderboltOutlined />}>
+        AI Recommendations
+      </Menu.Item>
+      <Menu.Item key="ai-chat" icon={<CommentOutlined />}>
+        AI Chat
+      </Menu.Item>
+      <Menu.Item key="market" icon={<LineChartOutlined />}>
+        Market Analysis
+      </Menu.Item>
+      <Menu.Item key="settings" icon={<SettingOutlined />}>
+        Settings
+      </Menu.Item>
+    </Menu>
+  );
+
   return (
     <ConfigProvider>
       <Layout style={{ minHeight: '100vh' }}>
-        <Header style={{ display: 'flex', alignItems: 'center', background: '#001529' }}>
-          <RobotOutlined style={{ fontSize: 32, color: 'white', marginRight: 16 }} />
-          <Title level={3} style={{ color: 'white', margin: 0 }}>
-            🤖 Dual Asset Bot - AI双币赢交易机器人
-          </Title>
+        <Header style={{ display: 'flex', alignItems: 'center', background: '#001529', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileMenuVisible(true)}
+                style={{ color: 'white', marginRight: 16 }}
+              />
+            )}
+            <RobotOutlined style={{ fontSize: isMobile ? 24 : 32, color: 'white', marginRight: 16 }} />
+            <Title level={isMobile ? 4 : 3} style={{ color: 'white', margin: 0 }}>
+              {isMobile ? 'Dual Asset Bot' : '🤖 Dual Asset Bot - AI双币赢交易机器人'}
+            </Title>
+          </div>
         </Header>
         <Layout>
-          <Sider width={200} style={{ background: '#fff' }}>
-            <Menu
-              mode="inline"
-              selectedKeys={[selectedKey]}
-              onSelect={({ key }) => setSelectedKey(key)}
-              style={{ height: '100%', borderRight: 0 }}
-            >
-              <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
-                Dashboard
-              </Menu.Item>
-              <Menu.Item key="portfolio" icon={<WalletOutlined />}>
-                Portfolio
-              </Menu.Item>
-              <Menu.Item key="auto-trading" icon={<PlayCircleOutlined />}>
-                Auto Trading
-              </Menu.Item>
-              <Menu.Item key="system-monitor" icon={<MonitorOutlined />}>
-                System Monitor
-              </Menu.Item>
-              <Menu.Item key="reports" icon={<FileTextOutlined />}>
-                Reports
-              </Menu.Item>
-              <Menu.Item key="ai-recommendations" icon={<ThunderboltOutlined />}>
-                AI Recommendations
-              </Menu.Item>
-              <Menu.Item key="ai-chat" icon={<CommentOutlined />}>
-                AI Chat
-              </Menu.Item>
-              <Menu.Item key="market" icon={<LineChartOutlined />}>
-                Market Analysis
-              </Menu.Item>
-              <Menu.Item key="settings" icon={<SettingOutlined />}>
-                Settings
-              </Menu.Item>
-            </Menu>
-          </Sider>
+          {!isMobile && (
+            <Sider width={200} style={{ background: '#fff' }}>
+              {menuItems}
+            </Sider>
+          )}
           <Layout style={{ padding: '0' }}>
             <Content style={{ margin: 0, minHeight: 280 }}>
               {renderContent()}
             </Content>
           </Layout>
         </Layout>
+        
+        {/* Mobile Menu Drawer */}
+        <Drawer
+          title="Navigation"
+          placement="left"
+          onClose={() => setMobileMenuVisible(false)}
+          visible={mobileMenuVisible}
+          width={250}
+        >
+          {menuItems}
+        </Drawer>
       </Layout>
     </ConfigProvider>
   );
