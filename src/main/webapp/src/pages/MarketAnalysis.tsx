@@ -131,61 +131,65 @@ const MarketAnalysisPage: React.FC = () => {
       }
 
       // Generate technical indicators from analysis
-      const indicators: TechnicalIndicator[] = [
-        {
-          name: 'RSI',
-          value: analysisRes.volatility.volatility_ratio * 50 + 25, // Mock calculation
-          signal: analysisRes.signals.rsi_signal as 'BUY' | 'SELL' | 'NEUTRAL',
-          strength: analysisRes.trend.strength === 'STRONG' ? 90 : 
-                   analysisRes.trend.strength === 'MODERATE' ? 60 : 30
-        },
-        {
-          name: 'MACD',
-          value: 0.0025,
-          signal: analysisRes.signals.macd_signal as 'BUY' | 'SELL' | 'NEUTRAL',
-          strength: 75
-        },
-        {
-          name: 'Bollinger Bands',
-          value: 0,
-          signal: analysisRes.signals.bb_signal as 'BUY' | 'SELL' | 'NEUTRAL',
-          strength: 65
-        },
-        {
-          name: 'Moving Average (50)',
-          value: priceRes.price * 0.98,
-          signal: priceRes.price > (priceRes.price * 0.98) ? 'BUY' : 'SELL',
-          strength: 55
-        },
-        {
-          name: 'Moving Average (200)',
-          value: priceRes.price * 0.95,
-          signal: priceRes.price > (priceRes.price * 0.95) ? 'BUY' : 'SELL',
-          strength: 70
-        }
-      ];
-      setTechnicalIndicators(indicators);
+      if (marketAnalysis) {
+        const indicators: TechnicalIndicator[] = [
+          {
+            name: 'RSI',
+            value: marketAnalysis.volatility.volatility_ratio * 50 + 25, // Mock calculation
+            signal: marketAnalysis.signals.rsi_signal as 'BUY' | 'SELL' | 'NEUTRAL',
+            strength: marketAnalysis.trend.strength === 'STRONG' ? 90 : 
+                     marketAnalysis.trend.strength === 'MODERATE' ? 60 : 30
+          },
+          {
+            name: 'MACD',
+            value: 0.0025,
+            signal: marketAnalysis.signals.macd_signal as 'BUY' | 'SELL' | 'NEUTRAL',
+            strength: 75
+          },
+          {
+            name: 'Bollinger Bands',
+            value: 0,
+            signal: marketAnalysis.signals.bb_signal as 'BUY' | 'SELL' | 'NEUTRAL',
+            strength: 65
+          },
+          {
+            name: 'Moving Average (50)',
+            value: currentPrice * 0.98,
+            signal: currentPrice > (currentPrice * 0.98) ? 'BUY' : 'SELL',
+            strength: 55
+          },
+          {
+            name: 'Moving Average (200)',
+            value: currentPrice * 0.95,
+            signal: currentPrice > (currentPrice * 0.95) ? 'BUY' : 'SELL',
+            strength: 70
+          }
+        ];
+        setTechnicalIndicators(indicators);
 
-      // Generate market sentiment
-      const sentiment: MarketSentiment = {
-        overall: analysisRes.trend.trend === 'UPTREND' ? 'BULLISH' : 
-                analysisRes.trend.trend === 'DOWNTREND' ? 'BEARISH' : 'NEUTRAL',
-        score: analysisRes.trend.strength === 'STRONG' ? 75 : 
-               analysisRes.trend.strength === 'MODERATE' ? 50 : 25,
-        fearGreedIndex: Math.floor(Math.random() * 100), // Mock data
-        volume24h: Math.random() * 1000000000,
-        volatility: analysisRes.volatility.volatility_ratio
-      };
-      setMarketSentiment(sentiment);
+        // Generate market sentiment
+        const sentiment: MarketSentiment = {
+          overall: marketAnalysis.trend.trend === 'UPTREND' ? 'BULLISH' : 
+                  marketAnalysis.trend.trend === 'DOWNTREND' ? 'BEARISH' : 'NEUTRAL',
+          score: marketAnalysis.trend.strength === 'STRONG' ? 75 : 
+                 marketAnalysis.trend.strength === 'MODERATE' ? 50 : 25,
+          fearGreedIndex: Math.floor(Math.random() * 100), // Mock data
+          volume24h: Math.random() * 1000000000,
+          volatility: marketAnalysis.volatility.volatility_ratio
+        };
+        setMarketSentiment(sentiment);
+      }
 
       // Generate price levels (mock data)
-      const levels: PriceLevel[] = [
-        { type: 'RESISTANCE', price: priceRes.price * 1.05, strength: 'STRONG', touches: 5 },
-        { type: 'RESISTANCE', price: priceRes.price * 1.03, strength: 'MODERATE', touches: 3 },
-        { type: 'SUPPORT', price: priceRes.price * 0.97, strength: 'MODERATE', touches: 4 },
-        { type: 'SUPPORT', price: priceRes.price * 0.95, strength: 'STRONG', touches: 7 },
-      ];
-      setPriceLevels(levels);
+      if (currentPrice > 0) {
+        const levels: PriceLevel[] = [
+          { type: 'RESISTANCE', price: currentPrice * 1.05, strength: 'STRONG', touches: 5 },
+          { type: 'RESISTANCE', price: currentPrice * 1.03, strength: 'MODERATE', touches: 3 },
+          { type: 'SUPPORT', price: currentPrice * 0.97, strength: 'MODERATE', touches: 4 },
+          { type: 'SUPPORT', price: currentPrice * 0.95, strength: 'STRONG', touches: 7 },
+        ];
+        setPriceLevels(levels);
+      }
 
       // Generate market news (mock data)
       const news: MarketNews[] = [

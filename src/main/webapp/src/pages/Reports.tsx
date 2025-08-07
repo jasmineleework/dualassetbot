@@ -96,7 +96,7 @@ const Reports: React.FC = () => {
         apiService.getPortfolioSummary()
       ]);
 
-      let investments = [];
+      let investments: Investment[] = [];
       if (results[0].status === 'fulfilled') {
         investments = results[0].value.investments;
         setInvestments(investments);
