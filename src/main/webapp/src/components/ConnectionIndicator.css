@@ -1,0 +1,49 @@
+.connection-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.connection-indicator .ant-badge-status-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.connection-indicator .connection-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.connection-indicator .anticon {
+  font-size: 16px;
+}
+
+/* Mobile responsive */
+@media (max-width: 576px) {
+  .connection-indicator {
+    top: 10px;
+    right: 10px;
+    padding: 6px 12px;
+  }
+  
+  .connection-indicator .connection-text {
+    display: none;
+  }
+}

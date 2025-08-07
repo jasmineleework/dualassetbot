@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge } from 'antd';
 import { 
   DollarOutlined, 
   LineChartOutlined, 
@@ -9,6 +9,8 @@ import {
   ArrowDownOutlined 
 } from '@ant-design/icons';
 import { apiService, BotStatus, DualInvestmentProduct, MarketAnalysis } from '../services/api';
+import { usePriceUpdates, useSystemAlerts, usePortfolioUpdates } from '../hooks/useWebSocket';
+import ConnectionIndicator from '../components/ConnectionIndicator';
 
 const { Title } = Typography;
 
@@ -21,6 +23,11 @@ const Dashboard: React.FC = () => {
   const [products, setProducts] = useState<DualInvestmentProduct[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [stats24hr, setStats24hr] = useState<any>(null);
+  
+  // WebSocket hooks for real-time data
+  const { prices: realtimePrices } = usePriceUpdates(['BTCUSDT', 'ETHUSDT']);
+  const { alerts, unreadCount } = useSystemAlerts(5);
+  const { portfolio } = usePortfolioUpdates();
 
   const fetchData = async () => {
     try {
@@ -169,17 +176,31 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Use realtime price if available, otherwise use fetched price
+  const displayBtcPrice = realtimePrices['BTCUSDT']?.price || btcPrice;
+  const displayBtcChange = realtimePrices['BTCUSDT']?.change24h || marketAnalysis?.price_change_24h || 0;
+
   return (
     <div style={{ padding: 24 }}>
+      <ConnectionIndicator />
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={2}>Trading Dashboard</Title>
-        <Button 
-          icon={<SyncOutlined spin={refreshing} />} 
-          onClick={fetchData}
-          loading={refreshing}
-        >
-          Refresh
-        </Button>
+        <Space>
+          {unreadCount > 0 && (
+            <Badge count={unreadCount} overflowCount={9}>
+              <Button icon={<RobotOutlined />}>
+                Alerts
+              </Button>
+            </Badge>
+          )}
+          <Button 
+            icon={<SyncOutlined spin={refreshing} />} 
+            onClick={fetchData}
+            loading={refreshing}
+          >
+            Refresh
+          </Button>
+        </Space>
       </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -197,10 +218,15 @@ const Dashboard: React.FC = () => {
           <Card>
             <Statistic
               title="BTC Price"
-              value={btcPrice || 0}
+              value={displayBtcPrice || 0}
               precision={2}
               prefix="$"
-              suffix={marketAnalysis && getTrendIcon(marketAnalysis.trend.trend)}
+              suffix={
+                <span style={{ fontSize: '14px' }}>
+                  {realtimePrices['BTCUSDT'] && <Badge status="processing" style={{ marginRight: 8 }} />}
+                  {marketAnalysis && getTrendIcon(marketAnalysis.trend.trend)}
+                </span>
+              }
             />
           </Card>
         </Col>

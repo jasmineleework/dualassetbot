@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ConfigProvider, Layout, Typography, Menu } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { ConfigProvider, Layout, Typography, Menu, notification } from 'antd';
 import { 
   DashboardOutlined, 
   LineChartOutlined, 
@@ -9,7 +9,8 @@ import {
   WalletOutlined,
   PlayCircleOutlined,
   MonitorOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  CommentOutlined
 } from '@ant-design/icons';
 import Dashboard from './pages/Dashboard';
 import AIRecommendations from './pages/AIRecommendations';
@@ -19,6 +20,9 @@ import SystemMonitor from './pages/SystemMonitor';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import MarketAnalysis from './pages/MarketAnalysis';
+import AIChat from './pages/AIChat';
+import wsService from './services/websocket';
+import { useSystemAlerts } from './hooks/useWebSocket';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -26,6 +30,27 @@ const { Title } = Typography;
 
 function App() {
   const [selectedKey, setSelectedKey] = useState('dashboard');
+  const { alerts } = useSystemAlerts(10);
+  
+  // Initialize WebSocket connection
+  useEffect(() => {
+    wsService.connect().catch(console.error);
+    return () => {
+      wsService.disconnect();
+    };
+  }, []);
+  
+  // Show notifications for critical alerts
+  useEffect(() => {
+    const latestAlert = alerts[0];
+    if (latestAlert && (latestAlert.level === 'ERROR' || latestAlert.level === 'CRITICAL')) {
+      notification.error({
+        message: latestAlert.title,
+        description: latestAlert.message,
+        duration: latestAlert.level === 'CRITICAL' ? 0 : 10,
+      });
+    }
+  }, [alerts]);
 
   const renderContent = () => {
     switch (selectedKey) {
@@ -41,6 +66,8 @@ function App() {
         return <Reports />;
       case 'ai-recommendations':
         return <AIRecommendations />;
+      case 'ai-chat':
+        return <AIChat />;
       case 'market':
         return <MarketAnalysis />;
       case 'settings':
@@ -84,6 +111,9 @@ function App() {
               </Menu.Item>
               <Menu.Item key="ai-recommendations" icon={<ThunderboltOutlined />}>
                 AI Recommendations
+              </Menu.Item>
+              <Menu.Item key="ai-chat" icon={<CommentOutlined />}>
+                AI Chat
               </Menu.Item>
               <Menu.Item key="market" icon={<LineChartOutlined />}>
                 Market Analysis
