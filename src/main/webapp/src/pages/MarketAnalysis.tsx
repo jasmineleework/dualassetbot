@@ -29,8 +29,6 @@ import {
   FallOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-  TrendingUpOutlined,
-  TrendingDownOutlined,
   BarChartOutlined,
   PieChartOutlined,
   DotChartOutlined,
@@ -232,9 +230,9 @@ const MarketAnalysisPage: React.FC = () => {
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'UPTREND':
-        return <TrendingUpOutlined style={{ color: '#52c41a' }} />;
+        return <RiseOutlined style={{ color: '#52c41a' }} />;
       case 'DOWNTREND':
-        return <TrendingDownOutlined style={{ color: '#f5222d' }} />;
+        return <FallOutlined style={{ color: '#f5222d' }} />;
       default:
         return <LineChartOutlined style={{ color: '#faad14' }} />;
     }

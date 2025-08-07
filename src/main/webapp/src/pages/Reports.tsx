@@ -30,8 +30,8 @@ import {
   EyeOutlined,
   CalendarOutlined,
   DollarOutlined,
-  TrendingUpOutlined,
-  TrendingDownOutlined,
+  RiseOutlined,
+  FallOutlined,
   LineChartOutlined,
   BarChartOutlined,
   PieChartOutlined,
@@ -393,7 +393,7 @@ const Reports: React.FC = () => {
             <Statistic
               title="Total Returns"
               value={reportData?.summary.total_returns || 0}
-              prefix={reportData && reportData.summary.total_returns >= 0 ? <TrendingUpOutlined /> : <TrendingDownOutlined />}
+              prefix={reportData && reportData.summary.total_returns >= 0 ? <RiseOutlined /> : <FallOutlined />}
               precision={2}
               valueStyle={{ 
                 color: reportData && reportData.summary.total_returns >= 0 ? '#52c41a' : '#f5222d' 

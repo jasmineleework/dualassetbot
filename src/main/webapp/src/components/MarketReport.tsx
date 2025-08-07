@@ -25,8 +25,8 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
-  TrendingUpOutlined,
-  TrendingDownOutlined,
+  RiseOutlined,
+  FallOutlined,
   LineChartOutlined,
   BarChartOutlined,
   DollarOutlined,
@@ -88,8 +88,8 @@ const MarketReport: React.FC<MarketReportProps> = ({ data, onExport, onShare }) 
   const [expanded, setExpanded] = useState(false);
 
   const getTrendIcon = (trend: string) => {
-    if (trend === 'UPTREND') return <TrendingUpOutlined style={{ color: '#52c41a' }} />;
-    if (trend === 'DOWNTREND') return <TrendingDownOutlined style={{ color: '#f5222d' }} />;
+    if (trend === 'UPTREND') return <RiseOutlined style={{ color: '#52c41a' }} />;
+    if (trend === 'DOWNTREND') return <FallOutlined style={{ color: '#f5222d' }} />;
     return <LineChartOutlined style={{ color: '#faad14' }} />;
   };
 
