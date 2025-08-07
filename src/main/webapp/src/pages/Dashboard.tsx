@@ -20,6 +20,7 @@ const Dashboard: React.FC = () => {
   const [marketAnalysis, setMarketAnalysis] = useState<MarketAnalysis | null>(null);
   const [products, setProducts] = useState<DualInvestmentProduct[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [stats24hr, setStats24hr] = useState<any>(null);
 
   const fetchData = async () => {
     try {
@@ -46,15 +47,17 @@ const Dashboard: React.FC = () => {
       }
 
       // Fetch all data in parallel if connected
-      const [priceRes, analysisRes, productsRes] = await Promise.all([
+      const [priceRes, analysisRes, productsRes, statsRes] = await Promise.all([
         apiService.getPrice('BTCUSDT'),
         apiService.getMarketAnalysis('BTCUSDT'),
-        apiService.getDualInvestmentProducts()
+        apiService.getDualInvestmentProducts(),
+        apiService.get24hrStats('BTCUSDT')
       ]);
 
       setBtcPrice(priceRes.price);
       setMarketAnalysis(analysisRes);
       setProducts(productsRes);
+      setStats24hr(statsRes);
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -133,7 +136,7 @@ const Dashboard: React.FC = () => {
     {
       title: 'Action',
       key: 'action',
-      render: (_, record: DualInvestmentProduct) => (
+      render: (_: any, record: DualInvestmentProduct) => (
         <Button type="primary" size="small">
           Subscribe
         </Button>
@@ -205,10 +208,10 @@ const Dashboard: React.FC = () => {
           <Card>
             <Statistic
               title="24h Change"
-              value={marketAnalysis?.price_change_24h || 0}
+              value={stats24hr?.price_change_percent || marketAnalysis?.price_change_24h || 0}
               precision={2}
               valueStyle={{ 
-                color: (marketAnalysis?.price_change_24h || 0) > 0 ? '#3f8600' : '#cf1322' 
+                color: (stats24hr?.price_change_percent || marketAnalysis?.price_change_24h || 0) > 0 ? '#3f8600' : '#cf1322' 
               }}
               prefix={<LineChartOutlined />}
               suffix="%"
@@ -225,6 +228,54 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      {stats24hr && (
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={24}>
+            <Card title="24 Hour Statistics">
+              <Row gutter={16}>
+                <Col span={6}>
+                  <Statistic
+                    title="24h High"
+                    value={stats24hr.high_24h}
+                    prefix="$"
+                    precision={2}
+                    valueStyle={{ color: '#52c41a' }}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="24h Low"
+                    value={stats24hr.low_24h}
+                    prefix="$"
+                    precision={2}
+                    valueStyle={{ color: '#f5222d' }}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="24h Volume"
+                    value={stats24hr.volume}
+                    suffix="BTC"
+                    precision={2}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="Price Change"
+                    value={stats24hr.price_change}
+                    prefix="$"
+                    precision={2}
+                    valueStyle={{ 
+                      color: stats24hr.price_change > 0 ? '#3f8600' : '#cf1322' 
+                    }}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {marketAnalysis && (
         <Row gutter={16} style={{ marginBottom: 24 }}>

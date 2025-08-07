@@ -20,6 +20,9 @@ class DualInvestmentEngine:
     def analyze_market_conditions(self, symbol: str) -> Dict[str, Any]:
         """Comprehensive market analysis for a trading pair"""
         try:
+            # Ensure Binance service is initialized
+            self.binance.ensure_initialized()
+            
             # Get historical data
             df = self.binance.get_klines(symbol, interval='1h', limit=168)  # 7 days of hourly data
             

@@ -8,6 +8,7 @@ from loguru import logger
 from core.config import settings
 import pandas as pd
 from datetime import datetime, timedelta
+import time
 
 class BinanceService:
     """Service for interacting with Binance API"""
@@ -33,6 +34,20 @@ class BinanceService:
             if settings.binance_testnet:
                 self.client.API_URL = 'https://testnet.binance.vision/api'
             
+            # Sync time with server to avoid timestamp errors
+            try:
+                server_time = self.client.get_server_time()
+                local_time = int(time.time() * 1000)
+                time_diff = server_time['serverTime'] - local_time
+                
+                if abs(time_diff) > 5000:
+                    logger.warning(f"Time difference with server: {time_diff}ms")
+                    # Apply time offset to client
+                    self.client.timestamp_offset = time_diff
+                    logger.info(f"Applied timestamp offset: {time_diff}ms")
+            except Exception as e:
+                logger.warning(f"Failed to sync time with server: {e}")
+            
             # Test connection
             self.client.ping()
             logger.info("Binance API client initialized successfully")
@@ -55,8 +70,7 @@ class BinanceService:
     def get_account_balance(self) -> Dict[str, float]:
         """Get account balance for all assets"""
         try:
-            if not self.client:
-                raise ValueError("Binance client not initialized")
+            self.ensure_initialized()
             
             account = self.client.get_account()
             balances = {}
@@ -104,8 +118,7 @@ class BinanceService:
             DataFrame with OHLCV data
         """
         try:
-            if not self.client:
-                raise ValueError("Binance client not initialized")
+            self.ensure_initialized()
             
             klines = self.client.get_klines(
                 symbol=symbol,
@@ -209,8 +222,7 @@ class BinanceService:
     def get_24hr_ticker_stats(self, symbol: str) -> Dict[str, Any]:
         """Get 24hr ticker statistics"""
         try:
-            if not self.client:
-                raise ValueError("Binance client not initialized")
+            self.ensure_initialized()
             
             ticker = self.client.get_ticker(symbol=symbol)
             
@@ -231,6 +243,7 @@ class BinanceService:
     def test_connection(self) -> bool:
         """Test connection to Binance API"""
         try:
+            self.ensure_initialized()
             if not self.client:
                 return False
             

@@ -3,6 +3,13 @@ Configuration settings for Dual Asset Bot
 """
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
+from pathlib import Path
+
+# Find project root directory (where .env file is located)
+current_dir = Path(__file__).resolve().parent
+# core -> python -> main -> src -> project_root
+project_root = current_dir.parent.parent.parent.parent  # Go up to project root
 
 class Settings(BaseSettings):
     """Application settings"""
@@ -23,7 +30,7 @@ class Settings(BaseSettings):
     # Binance API
     binance_api_key: Optional[str] = None
     binance_api_secret: Optional[str] = None
-    binance_testnet: bool = True
+    binance_testnet: bool = False
     
     # Trading Configuration
     default_investment_amount: float = 100.0  # USDT
@@ -44,7 +51,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     
     class Config:
-        env_file = ".env"
+        env_file = str(project_root / ".env")
         case_sensitive = False
         extra = "ignore"  # Ignore extra fields in .env file
 

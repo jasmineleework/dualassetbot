@@ -3,6 +3,9 @@
 echo "Starting Dual Asset Bot API Server..."
 echo "===================================="
 
+# Change to project root directory
+cd "$(dirname "$0")"
+
 # Activate virtual environment
 source venv/bin/activate
 
