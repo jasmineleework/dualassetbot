@@ -340,7 +340,7 @@ const Portfolio: React.FC = () => {
               <Col span={4}>
                 <Statistic
                   title="Total Investments"
-                  value={statusBreakdown?.active + statusBreakdown?.completed + statusBreakdown?.pending + statusBreakdown?.failed + statusBreakdown?.cancelled || 0}
+                  value={(statusBreakdown?.active || 0) + (statusBreakdown?.completed || 0) + (statusBreakdown?.pending || 0) + (statusBreakdown?.failed || 0) + (statusBreakdown?.cancelled || 0)}
                   valueStyle={{ fontSize: '24px' }}
                 />
               </Col>

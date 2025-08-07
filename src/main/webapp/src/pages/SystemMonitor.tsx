@@ -26,7 +26,7 @@ import {
   ExclamationCircleOutlined,
   CloseCircleOutlined,
   SyncOutlined,
-  ServerOutlined,
+  CloudServerOutlined,
   DatabaseOutlined,
   ApiOutlined,
   ClusterOutlined,
@@ -274,7 +274,7 @@ const SystemMonitor: React.FC = () => {
     <div className="system-monitor-container">
       <div className="system-monitor-header">
         <Title level={2}>
-          <ServerOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+          <CloudServerOutlined style={{ color: '#1890ff', marginRight: 8 }} />
           System Monitor
         </Title>
         <Space>
@@ -383,7 +383,7 @@ const SystemMonitor: React.FC = () => {
             <Statistic
               title="Total Processes"
               value={taskStats?.overall_stats?.total_processes || 0}
-              prefix={<ServerOutlined />}
+              prefix={<CloudServerOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>

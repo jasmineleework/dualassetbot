@@ -330,7 +330,6 @@ const AutoTrading: React.FC = () => {
             <div style={{ textAlign: 'center' }}>
               <Title level={4}>Automated Trading</Title>
               <Switch
-                size="large"
                 checked={autoTradingEnabled}
                 onChange={handleToggleAutoTrading}
                 checkedChildren={<CheckCircleOutlined />}

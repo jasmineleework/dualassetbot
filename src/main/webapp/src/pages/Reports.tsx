@@ -21,7 +21,6 @@ import {
   Modal,
   Timeline,
   Tabs,
-  Charts,
   Badge
 } from 'antd';
 import {
@@ -450,7 +449,7 @@ const Reports: React.FC = () => {
               <Space>
                 <RangePicker
                   placeholder={['Start Date', 'End Date']}
-                  onChange={(dates) => setSelectedDateRange(dates as [Date, Date])}
+                  onChange={(dates) => setSelectedDateRange(dates ? [dates[0]?.toDate() || new Date(), dates[1]?.toDate() || new Date()] : null)}
                 />
                 <Select
                   placeholder="Filter by Status"
@@ -625,7 +624,7 @@ const Reports: React.FC = () => {
               </Col>
             </Row>
             <Card size="small" title="Timeline" style={{ marginTop: 16 }}>
-              <Timeline size="small">
+              <Timeline>
                 <Timeline.Item color="blue">
                   <strong>Created:</strong> {new Date(selectedInvestment.created_at).toLocaleString()}
                 </Timeline.Item>

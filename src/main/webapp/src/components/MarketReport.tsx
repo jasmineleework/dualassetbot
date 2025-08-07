@@ -347,13 +347,13 @@ const MarketReport: React.FC<MarketReportProps> = ({ data, onExport, onShare }) 
             }。
           </Paragraph>
           <Paragraph>
-            技术指标显示，RSI指标发出<Tag color={getSignalColor(data.technicalAnalysis.signals.rsi)} size="small">
+            技术指标显示，RSI指标发出<Tag color={getSignalColor(data.technicalAnalysis.signals.rsi)}>
               {data.technicalAnalysis.signals.rsi}
             </Tag>信号，
-            MACD指标显示<Tag color={getSignalColor(data.technicalAnalysis.signals.macd)} size="small">
+            MACD指标显示<Tag color={getSignalColor(data.technicalAnalysis.signals.macd)}>
               {data.technicalAnalysis.signals.macd}
             </Tag>，
-            布林带指标提示<Tag color={getSignalColor(data.technicalAnalysis.signals.bollinger)} size="small">
+            布林带指标提示<Tag color={getSignalColor(data.technicalAnalysis.signals.bollinger)}>
               {data.technicalAnalysis.signals.bollinger}
             </Tag>。
             综合来看，市场短期内
@@ -386,7 +386,7 @@ const MarketReport: React.FC<MarketReportProps> = ({ data, onExport, onShare }) 
                     <Tag color={
                       news.impact === 'HIGH' ? 'red' :
                       news.impact === 'MEDIUM' ? 'orange' : 'green'
-                    } size="small">
+                    }>
                       {news.impact} 影响
                     </Tag>
                   </Space>

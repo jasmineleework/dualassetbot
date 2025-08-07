@@ -419,30 +419,21 @@ class WebSocketService {
    * Show system alert as notification
    */
   private showSystemAlert(alert: SystemAlert): void {
-    const config = {
-      message: alert.title,
-      description: alert.message,
-      duration: alert.level === 'CRITICAL' ? 0 : 5,
-    };
+    const msg = `${alert.title}: ${alert.message}`;
+    const duration = alert.level === 'CRITICAL' ? 0 : 5;
 
     switch (alert.level) {
       case 'INFO':
-        message.info(config);
+        message.info(msg, duration);
         break;
       case 'WARNING':
-        message.warning(config);
+        message.warning(msg, duration);
         break;
       case 'ERROR':
-        message.error(config);
+        message.error(msg, duration);
         break;
       case 'CRITICAL':
-        message.error({
-          ...config,
-          style: {
-            backgroundColor: '#fff2f0',
-            border: '1px solid #ffccc7'
-          }
-        });
+        message.error(msg, 0);
         break;
     }
   }

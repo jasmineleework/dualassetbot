@@ -46,6 +46,7 @@ import {
   DislikeOutlined
 } from '@ant-design/icons';
 import { apiService } from '../services/api';
+import { message as antMessage } from 'antd';
 import './AIChat.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -228,7 +229,7 @@ const AIChat: React.FC = () => {
       }
 
     } catch (error) {
-      message.error('Failed to get AI response');
+      antMessage.error('Failed to get AI response');
     } finally {
       setSending(false);
     }
@@ -385,7 +386,7 @@ ${input.includes('市场') ? '当前市场处于震荡整理阶段，建议采�
     setMessages(prev => prev.map(msg => 
       msg.id === messageId ? { ...msg, rating } : msg
     ));
-    message.success('感谢您的反馈！');
+    antMessage.success('感谢您的反馈！');
   };
 
   const handleApplyChanges = () => {
@@ -396,7 +397,7 @@ ${input.includes('市场') ? '当前市场处于震荡整理阶段，建议采�
       ));
     });
     
-    message.success('策略参数已更新');
+    antMessage.success('策略参数已更新');
     setShowStrategyModal(false);
     setPendingChanges([]);
   };
@@ -414,7 +415,7 @@ ${input.includes('市场') ? '当前市场处于震荡整理阶段，建议采�
     link.click();
     URL.revokeObjectURL(url);
     
-    message.success('对话已导出');
+    antMessage.success('对话已导出');
   };
 
   const handleClearChat = () => {
@@ -426,7 +427,7 @@ ${input.includes('市场') ? '当前市场处于震荡整理阶段，建议采�
       onOk: () => {
         setMessages([]);
         sendWelcomeMessage();
-        message.success('对话已清空');
+        antMessage.success('对话已清空');
       }
     });
   };
@@ -545,7 +546,7 @@ ${input.includes('市场') ? '当前市场处于震荡整理阶段，建议采�
                               icon={<CopyOutlined />}
                               onClick={() => {
                                 navigator.clipboard.writeText(message.content);
-                                message.success('已复制到剪贴板');
+                                antMessage.success('已复制到剪贴板');
                               }}
                             />
                           </Tooltip>
