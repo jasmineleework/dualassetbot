@@ -1,0 +1,501 @@
+.market-analysis-container {
+  padding: 24px;
+}
+
+.market-analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* Price Cards */
+.market-price-card {
+  text-align: center;
+}
+
+.market-price-card .ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.market-price-card .ant-statistic-content {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.market-price-positive {
+  color: #52c41a;
+}
+
+.market-price-negative {
+  color: #f5222d;
+}
+
+.market-price-neutral {
+  color: #faad14;
+}
+
+/* Trend Indicators */
+.market-trend-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.market-trend-up {
+  color: #52c41a;
+}
+
+.market-trend-down {
+  color: #f5222d;
+}
+
+.market-trend-neutral {
+  color: #faad14;
+}
+
+/* Sentiment Cards */
+.market-sentiment-card {
+  text-align: center;
+  padding: 24px;
+}
+
+.market-sentiment-card .ant-progress-circle {
+  margin-bottom: 16px;
+}
+
+.market-sentiment-bullish {
+  background: linear-gradient(135deg, #f6ffed 0%, #d4ffd4 100%);
+}
+
+.market-sentiment-bearish {
+  background: linear-gradient(135deg, #fff2f0 0%, #ffd4d4 100%);
+}
+
+.market-sentiment-neutral {
+  background: linear-gradient(135deg, #fffbe6 0%, #fff4d4 100%);
+}
+
+/* Technical Analysis Table */
+.market-technical-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.market-technical-table .ant-table-tbody > tr > td {
+  font-size: 13px;
+  padding: 12px 16px;
+}
+
+.market-technical-signal-buy {
+  background-color: #f6ffed;
+}
+
+.market-technical-signal-sell {
+  background-color: #fff2f0;
+}
+
+.market-technical-signal-neutral {
+  background-color: #fffbe6;
+}
+
+/* Price Levels */
+.market-price-levels {
+  margin-top: 16px;
+}
+
+.market-price-level-resistance {
+  border-left: 4px solid #f5222d;
+  padding-left: 12px;
+  margin-bottom: 8px;
+}
+
+.market-price-level-support {
+  border-left: 4px solid #52c41a;
+  padding-left: 12px;
+  margin-bottom: 8px;
+}
+
+.market-price-level-strong {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.market-price-level-moderate {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.market-price-level-weak {
+  font-weight: 400;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Market News */
+.market-news-item {
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+}
+
+.market-news-positive {
+  border-color: #b7eb8f;
+  background-color: #f6ffed;
+}
+
+.market-news-negative {
+  border-color: #ffccc7;
+  background-color: #fff2f0;
+}
+
+.market-news-neutral {
+  border-color: #ffe58f;
+  background-color: #fffbe6;
+}
+
+.market-news-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.market-news-summary {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.market-news-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #999;
+}
+
+/* Opportunity Cards */
+.market-opportunity-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.market-opportunity-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.market-opportunity-high-apy {
+  border-color: #b7eb8f;
+  background: linear-gradient(135deg, #f6ffed 0%, #e6ffde 100%);
+}
+
+.market-opportunity-recommended {
+  border-color: #91d5ff;
+  background: linear-gradient(135deg, #e6f7ff 0%, #d6f0ff 100%);
+}
+
+/* Tab Styling */
+.market-analysis-tabs .ant-tabs-tab {
+  font-weight: 600;
+  padding: 12px 16px;
+}
+
+.market-analysis-tabs .ant-tabs-tab .anticon {
+  margin-right: 8px;
+}
+
+.market-analysis-tabs .ant-tabs-content-holder {
+  background: white;
+  border-radius: 8px;
+}
+
+/* Alert Messages */
+.market-alert {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.market-alert-bullish {
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.market-alert-bearish {
+  background-color: #fff2f0;
+  border-color: #ffccc7;
+}
+
+/* Fear & Greed Index */
+.fear-greed-container {
+  text-align: center;
+  padding: 24px;
+}
+
+.fear-greed-extreme-fear {
+  color: #8b0000;
+  font-weight: 700;
+}
+
+.fear-greed-fear {
+  color: #f5222d;
+  font-weight: 600;
+}
+
+.fear-greed-neutral {
+  color: #faad14;
+  font-weight: 600;
+}
+
+.fear-greed-greed {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.fear-greed-extreme-greed {
+  color: #006400;
+  font-weight: 700;
+}
+
+/* Volatility Indicator */
+.volatility-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volatility-low {
+  color: #52c41a;
+}
+
+.volatility-medium {
+  color: #faad14;
+}
+
+.volatility-high {
+  color: #f5222d;
+}
+
+/* Loading State */
+.market-loading {
+  text-align: center;
+  margin-top: 100px;
+}
+
+.market-loading .ant-spin {
+  margin-bottom: 16px;
+}
+
+/* Empty States */
+.market-empty {
+  text-align: center;
+  padding: 40px;
+}
+
+.market-empty .anticon {
+  font-size: 48px;
+  color: #d9d9d9;
+  margin-bottom: 16px;
+}
+
+/* Symbol Selector */
+.market-symbol-selector {
+  min-width: 150px;
+}
+
+.market-symbol-selector .ant-select-selector {
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* Timeframe Selector */
+.market-timeframe-selector .ant-radio-button-wrapper {
+  font-weight: 600;
+}
+
+.market-timeframe-selector .ant-radio-button-wrapper-checked {
+  background: linear-gradient(90deg, #1890ff 0%, #36cfc9 100%);
+  border-color: #1890ff;
+}
+
+/* Refresh Button */
+.market-refresh-button:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .market-analysis-container {
+    padding: 16px;
+  }
+  
+  .market-analysis-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .market-analysis-header .ant-space {
+    width: 100%;
+  }
+  
+  .market-analysis-header .ant-space-item {
+    width: 100%;
+  }
+  
+  .market-symbol-selector {
+    width: 100% !important;
+  }
+  
+  .market-timeframe-selector {
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  .market-technical-table .ant-table-thead > tr > th,
+  .market-technical-table .ant-table-tbody > tr > td {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .market-sentiment-card {
+    padding: 16px;
+  }
+  
+  .market-news-item {
+    padding: 12px;
+  }
+  
+  .market-news-title {
+    font-size: 14px;
+  }
+  
+  .market-news-summary {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .market-analysis-header .ant-typography-title {
+    font-size: 18px;
+  }
+  
+  .market-price-card .ant-statistic-content {
+    font-size: 20px;
+  }
+  
+  .market-technical-table,
+  .market-price-levels {
+    font-size: 11px;
+  }
+  
+  .market-analysis-tabs .ant-tabs-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .market-analysis-tabs .ant-tabs-tab .anticon {
+    font-size: 12px;
+    margin-right: 4px;
+  }
+  
+  .market-opportunity-card {
+    padding: 12px;
+  }
+  
+  .fear-greed-container {
+    padding: 16px;
+  }
+}
+
+/* Animation Effects */
+.market-price-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.market-trend-indicator {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Signal Strength Indicators */
+.signal-strength-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f5222d 0%, #faad14 50%, #52c41a 100%);
+  position: relative;
+  margin-top: 8px;
+}
+
+.signal-strength-indicator {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #1890ff;
+  top: -4px;
+  transition: left 0.3s ease;
+}
+
+/* Chart Placeholders */
+.market-chart-placeholder {
+  height: 400px;
+  background: linear-gradient(135deg, #f0f2f5 0%, #e8eaed 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 16px;
+}
+
+/* Technical Indicator Badges */
+.technical-indicator-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.technical-indicator-buy {
+  background-color: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.technical-indicator-sell {
+  background-color: #fff2f0;
+  color: #f5222d;
+  border: 1px solid #ffccc7;
+}
+
+.technical-indicator-neutral {
+  background-color: #fafafa;
+  color: #8c8c8c;
+  border: 1px solid #d9d9d9;
+}

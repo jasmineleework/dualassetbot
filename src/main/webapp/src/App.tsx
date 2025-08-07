@@ -18,6 +18,7 @@ import AutoTrading from './pages/AutoTrading';
 import SystemMonitor from './pages/SystemMonitor';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import MarketAnalysis from './pages/MarketAnalysis';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -41,7 +42,7 @@ function App() {
       case 'ai-recommendations':
         return <AIRecommendations />;
       case 'market':
-        return <div style={{ padding: 24 }}>市场分析功能开发中...</div>;
+        return <MarketAnalysis />;
       case 'settings':
         return <Settings />;
       default:
