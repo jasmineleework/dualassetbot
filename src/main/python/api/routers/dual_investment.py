@@ -119,3 +119,23 @@ async def get_investment_history(
         "offset": offset,
         "message": "History tracking not yet implemented"
     }
+
+@router.get("/ai-recommendations/{symbol}")
+async def get_ai_recommendations(
+    symbol: str,
+    limit: int = Query(5, ge=1, le=20, description="Maximum number of recommendations")
+):
+    """Get AI-powered investment recommendations using strategy ensemble"""
+    try:
+        recommendations = dual_investment_engine.get_ai_recommendations(symbol.upper(), limit)
+        
+        return {
+            "symbol": symbol.upper(),
+            "timestamp": datetime.now().isoformat(),
+            "total_recommendations": len(recommendations),
+            "recommendations": recommendations
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get AI recommendations for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

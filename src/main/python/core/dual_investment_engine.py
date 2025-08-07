@@ -9,6 +9,11 @@ from loguru import logger
 from services.binance_service import binance_service
 from services.market_analysis import market_analysis_service
 from core.config import settings
+from strategies.strategy_manager import StrategyManager
+from core.database import get_db
+from dao import strategy_log_dao
+from models.strategy_log import DecisionType
+import time
 
 class DualInvestmentEngine:
     """AI-powered engine for dual investment decisions"""
@@ -16,6 +21,8 @@ class DualInvestmentEngine:
     def __init__(self):
         self.binance = binance_service
         self.market_analysis = market_analysis_service
+        self.strategy_manager = StrategyManager()
+        self.user_id = "default"  # Default user for now
         
     def analyze_market_conditions(self, symbol: str) -> Dict[str, Any]:
         """Comprehensive market analysis for a trading pair"""
@@ -313,6 +320,120 @@ class DualInvestmentEngine:
         }
         
         return report
+    
+    def get_ai_recommendations(self, symbol: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get AI-powered investment recommendations using strategy ensemble
+        
+        Args:
+            symbol: Trading pair symbol
+            limit: Maximum number of recommendations
+            
+        Returns:
+            List of investment recommendations with AI scores and analysis
+        """
+        try:
+            start_time = time.time()
+            
+            # Get comprehensive market analysis
+            market_data = self.analyze_market_conditions(symbol)
+            
+            # Get available products
+            products = self.binance.get_dual_investment_products()
+            
+            # Filter products for this symbol
+            asset = symbol.replace('USDT', '')
+            relevant_products = [
+                p for p in products 
+                if p.get('asset') == asset
+            ]
+            
+            if not relevant_products:
+                logger.warning(f"No dual investment products found for {asset}")
+                return []
+            
+            # Use strategy manager for batch analysis
+            recommendations = []
+            
+            # Analyze products using strategy ensemble
+            results = self.strategy_manager.batch_analyze_products(
+                symbol, market_data, relevant_products, limit
+            )
+            
+            for result in results:
+                try:
+                    decision = result['investment_decision']
+                    
+                    # Log strategy decision to database
+                    try:
+                        with next(get_db()) as db:
+                            strategy_log_dao.log_decision(
+                                db=db,
+                                user_id=self.user_id,
+                                strategy_name="DualInvestmentEngine",
+                                decision_type=DecisionType.INVEST if decision.should_invest else DecisionType.SKIP,
+                                symbol=symbol,
+                                ai_score=decision.ai_score,
+                                decision_made=decision.should_invest,
+                                reasons=decision.reasons,
+                                market_price=market_data.get('current_price'),
+                                market_trend=market_data.get('trend', {}).get('trend'),
+                                volatility=market_data.get('volatility', {}).get('volatility_ratio'),
+                                expected_return=decision.expected_return,
+                                risk_score=decision.risk_score,
+                                amount=decision.amount,
+                                product_id=decision.product_id,
+                                technical_indicators=market_data.get('signals'),
+                                support_resistance=market_data.get('support_resistance'),
+                                warnings=decision.warnings
+                            )
+                    except Exception as db_error:
+                        logger.warning(f"Failed to log decision to database: {db_error}")
+                    
+                    # Format recommendation
+                    recommendation_level = self._get_recommendation_level(decision)
+                    
+                    recommendations.append({
+                        'product_id': decision.product_id,
+                        'should_invest': decision.should_invest,
+                        'amount': decision.amount,
+                        'ai_score': decision.ai_score,
+                        'expected_return': decision.expected_return,
+                        'risk_score': decision.risk_score,
+                        'recommendation': recommendation_level,
+                        'reasons': decision.reasons,
+                        'warnings': decision.warnings,
+                        'strategy_signals': result.get('strategy_signals', {}),
+                        'ensemble_signal': result.get('ensemble_signal'),
+                        'market_analysis': market_data,
+                        'metadata': decision.metadata
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Failed to process recommendation: {e}")
+                    continue
+            
+            execution_time = time.time() - start_time
+            logger.info(f"Generated {len(recommendations)} AI recommendations for {symbol} in {execution_time:.3f}s")
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Failed to make AI recommendations for {symbol}: {e}")
+            raise
+    
+    def _get_recommendation_level(self, decision) -> str:
+        """Get human-readable recommendation level"""
+        if not decision.should_invest:
+            return "SKIP"
+        elif decision.ai_score >= 0.8:
+            return "STRONG_BUY"
+        elif decision.ai_score >= 0.65:
+            return "BUY"
+        elif decision.ai_score >= 0.5:
+            return "CONSIDER"
+        else:
+            return "WEAK_BUY"
 
 # Create singleton instance
 dual_investment_engine = DualInvestmentEngine()
