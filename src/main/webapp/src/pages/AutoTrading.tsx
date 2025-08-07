@@ -62,9 +62,13 @@ const AutoTrading: React.FC = () => {
   const [triggeringTask, setTriggeringTask] = useState<string>('');
   const [form] = Form.useForm();
 
-  const fetchData = async () => {
+  const fetchData = async (isInitialLoad = false) => {
     try {
-      setLoading(true);
+      // Only show loading spinner on initial load
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      
       const results = await Promise.allSettled([
         apiService.getTradingSettings(),
         apiService.getActiveTasks(),
@@ -74,7 +78,10 @@ const AutoTrading: React.FC = () => {
 
       if (results[0].status === 'fulfilled') {
         setSettings(results[0].value);
-        form.setFieldsValue(results[0].value);
+        // Only update form on initial load to avoid overwriting user changes
+        if (isInitialLoad) {
+          form.setFieldsValue(results[0].value);
+        }
       }
       
       if (results[1].status === 'fulfilled') {
@@ -91,16 +98,21 @@ const AutoTrading: React.FC = () => {
       setRecommendations(recommendations);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to load data';
-      message.error(errorMsg);
+      // Only show error message on initial load
+      if (isInitialLoad) {
+        message.error(errorMsg);
+      }
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchData();
-    // Auto-refresh every 15 seconds
-    const interval = setInterval(fetchData, 15000);
+    fetchData(true); // Initial load
+    // Auto-refresh every 30 seconds (increased from 15)
+    const interval = setInterval(() => fetchData(false), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -165,7 +177,7 @@ const AutoTrading: React.FC = () => {
       setTriggeringTask('auto-execute');
       const result = await apiService.triggerAutoExecution();
       message.success(`Auto-execution triggered. Task ID: ${result.task_id}`);
-      setTimeout(fetchData, 2000); // Refresh data to show new task
+      setTimeout(() => fetchData(false), 2000); // Refresh data to show new task
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to trigger auto-execution';
       message.error(errorMsg);
@@ -182,7 +194,7 @@ const AutoTrading: React.FC = () => {
         recommendation.amount
       );
       message.success(`Investment execution started. Task ID: ${result.task_id}`);
-      setTimeout(fetchData, 2000);
+      setTimeout(() => fetchData(false), 2000);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to execute investment';
       message.error(errorMsg);
@@ -196,7 +208,7 @@ const AutoTrading: React.FC = () => {
       setTriggeringTask('market-update');
       const result = await apiService.triggerMarketDataUpdate(['BTCUSDT', 'ETHUSDT']);
       message.success(`Market data update triggered. Task ID: ${result.task_id}`);
-      setTimeout(fetchData, 2000);
+      setTimeout(() => fetchData(false), 2000);
     } catch (error) {
       message.error('Failed to trigger market update');
     } finally {
@@ -209,7 +221,7 @@ const AutoTrading: React.FC = () => {
       setTriggeringTask('ai-recommendations');
       const result = await apiService.triggerAIRecommendations(['BTCUSDT', 'ETHUSDT']);
       message.success(`AI recommendations generation triggered. Task ID: ${result.task_id}`);
-      setTimeout(fetchData, 2000);
+      setTimeout(() => fetchData(false), 2000);
     } catch (error) {
       message.error('Failed to trigger AI recommendations');
     } finally {
@@ -322,7 +334,7 @@ const AutoTrading: React.FC = () => {
           Automated Trading Control
         </Title>
         <Space>
-          <Button icon={<SyncOutlined />} onClick={fetchData}>
+          <Button icon={<SyncOutlined />} onClick={() => fetchData(false)}>
             Refresh
           </Button>
           <Button
