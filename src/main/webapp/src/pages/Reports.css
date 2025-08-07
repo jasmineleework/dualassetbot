@@ -1,0 +1,414 @@
+.reports-container {
+  padding: 24px;
+}
+
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* Performance Cards */
+.reports-performance-cards .ant-card {
+  height: 100%;
+  text-align: center;
+}
+
+.reports-performance-cards .ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.reports-performance-cards .ant-statistic-content {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Investment Table */
+.reports-investment-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.reports-investment-table .ant-table-tbody > tr > td {
+  font-size: 13px;
+  padding: 12px 16px;
+}
+
+.reports-investment-table .ant-table-tbody > tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Performance Summary Cards */
+.reports-performance-summary {
+  margin-bottom: 24px;
+}
+
+.reports-performance-summary .ant-card-head {
+  padding: 12px 16px;
+  min-height: auto;
+}
+
+.reports-performance-summary .ant-card-head-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.reports-performance-summary .ant-card-body {
+  padding: 16px;
+}
+
+/* Status Tags */
+.reports-status-completed {
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+  color: #52c41a;
+}
+
+.reports-status-active {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+  color: #1890ff;
+}
+
+.reports-status-pending {
+  background-color: #fffbe6;
+  border-color: #ffe58f;
+  color: #faad14;
+}
+
+.reports-status-failed {
+  background-color: #fff2f0;
+  border-color: #ffccc7;
+  color: #f5222d;
+}
+
+.reports-status-cancelled {
+  background-color: #fafafa;
+  border-color: #d9d9d9;
+  color: #8c8c8c;
+}
+
+/* Filter Section */
+.reports-filters {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.reports-filters .ant-space-item {
+  margin-bottom: 8px;
+}
+
+/* Tab Content */
+.reports-tabs .ant-tabs-content-holder {
+  background: white;
+  border-radius: 8px;
+}
+
+.reports-tabs .ant-tabs-tab {
+  font-weight: 600;
+}
+
+/* Performance by Asset Table */
+.reports-asset-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  text-align: center;
+}
+
+.reports-asset-table .ant-table-tbody > tr > td {
+  text-align: center;
+  font-size: 13px;
+}
+
+.reports-asset-table .ant-table-tbody > tr > td:first-child {
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Timeline Styling */
+.reports-timeline {
+  padding: 16px 0;
+}
+
+.reports-timeline .ant-timeline-item-content {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.reports-timeline .ant-timeline-item-content strong {
+  color: #262626;
+}
+
+/* Investment Detail Modal */
+.reports-detail-modal .ant-modal-header {
+  background: linear-gradient(90deg, #1890ff 0%, #36cfc9 100%);
+}
+
+.reports-detail-modal .ant-modal-title {
+  color: white;
+  font-weight: 600;
+}
+
+.reports-detail-modal .ant-card-head {
+  padding: 8px 12px;
+  min-height: auto;
+  background-color: #fafafa;
+}
+
+.reports-detail-modal .ant-card-head-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.reports-detail-modal .ant-card-body {
+  padding: 12px;
+}
+
+.reports-detail-modal .ant-timeline {
+  margin-top: 8px;
+}
+
+/* Export Buttons */
+.reports-export-buttons .ant-btn {
+  height: 40px;
+  font-weight: 600;
+}
+
+.reports-export-buttons .ant-btn-primary {
+  background: linear-gradient(90deg, #1890ff 0%, #36cfc9 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+.reports-export-buttons .ant-btn-primary:hover {
+  background: linear-gradient(90deg, #36cfc9 0%, #1890ff 100%);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+}
+
+.reports-export-buttons .ant-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+/* ROI Colors */
+.reports-roi-positive {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.reports-roi-negative {
+  color: #f5222d;
+  font-weight: 600;
+}
+
+.reports-roi-neutral {
+  color: #8c8c8c;
+  font-weight: 600;
+}
+
+/* Loading State */
+.reports-loading {
+  text-align: center;
+  margin-top: 100px;
+}
+
+.reports-loading .ant-spin {
+  margin-bottom: 16px;
+}
+
+/* Empty States */
+.reports-empty {
+  text-align: center;
+  padding: 40px;
+}
+
+.reports-empty .anticon {
+  font-size: 48px;
+  color: #d9d9d9;
+  margin-bottom: 16px;
+}
+
+/* Pagination */
+.reports-pagination {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.reports-pagination .ant-pagination-total-text {
+  font-size: 13px;
+  color: #666;
+}
+
+/* Alert Messages */
+.reports-alert {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+/* Card Hover Effects */
+.reports-card-hover:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .reports-container {
+    padding: 16px;
+  }
+  
+  .reports-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .reports-header .ant-space {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .reports-filters {
+    padding: 12px;
+  }
+  
+  .reports-filters .ant-space {
+    display: block;
+  }
+  
+  .reports-filters .ant-space-item {
+    display: block;
+    margin-bottom: 12px;
+  }
+  
+  .reports-investment-table .ant-table-thead > tr > th,
+  .reports-investment-table .ant-table-tbody > tr > td {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .reports-asset-table .ant-table-thead > tr > th,
+  .reports-asset-table .ant-table-tbody > tr > td {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  
+  .reports-timeline .ant-timeline-item-content {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .reports-header .ant-typography-title {
+    font-size: 18px;
+  }
+  
+  .reports-performance-cards .ant-statistic-content {
+    font-size: 20px;
+  }
+  
+  .reports-export-buttons .ant-btn {
+    height: 36px;
+    font-size: 13px;
+    padding: 0 12px;
+  }
+  
+  .reports-investment-table,
+  .reports-asset-table {
+    font-size: 11px;
+  }
+  
+  .reports-detail-modal .ant-modal-body {
+    padding: 16px;
+  }
+  
+  .reports-detail-modal .ant-card {
+    margin-bottom: 12px;
+  }
+}
+
+/* Progress Indicators */
+.reports-success-rate .ant-progress-bg {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+}
+
+.reports-performance-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Investment Status Indicators */
+.investment-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.investment-status-badge.completed {
+  background-color: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.investment-status-badge.active {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
+}
+
+.investment-status-badge.pending {
+  background-color: #fffbe6;
+  color: #faad14;
+  border: 1px solid #ffe58f;
+}
+
+.investment-status-badge.failed {
+  background-color: #fff2f0;
+  color: #f5222d;
+  border: 1px solid #ffccc7;
+}
+
+/* Data Visualization */
+.reports-chart-container {
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.reports-chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #262626;
+}
+
+/* Summary Statistics */
+.reports-summary-stat {
+  text-align: center;
+  padding: 16px;
+}
+
+.reports-summary-stat .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.reports-summary-stat .stat-label {
+  font-size: 13px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

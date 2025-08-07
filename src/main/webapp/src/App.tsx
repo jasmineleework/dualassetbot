@@ -8,13 +8,15 @@ import {
   ThunderboltOutlined,
   WalletOutlined,
   PlayCircleOutlined,
-  MonitorOutlined
+  MonitorOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import Dashboard from './pages/Dashboard';
 import AIRecommendations from './pages/AIRecommendations';
 import Portfolio from './pages/Portfolio';
 import AutoTrading from './pages/AutoTrading';
 import SystemMonitor from './pages/SystemMonitor';
+import Reports from './pages/Reports';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -33,6 +35,8 @@ function App() {
         return <AutoTrading />;
       case 'system-monitor':
         return <SystemMonitor />;
+      case 'reports':
+        return <Reports />;
       case 'ai-recommendations':
         return <AIRecommendations />;
       case 'market':
@@ -72,6 +76,9 @@ function App() {
               </Menu.Item>
               <Menu.Item key="system-monitor" icon={<MonitorOutlined />}>
                 System Monitor
+              </Menu.Item>
+              <Menu.Item key="reports" icon={<FileTextOutlined />}>
+                Reports
               </Menu.Item>
               <Menu.Item key="ai-recommendations" icon={<ThunderboltOutlined />}>
                 AI Recommendations
