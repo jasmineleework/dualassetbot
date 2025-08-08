@@ -73,6 +73,7 @@ const Dashboard: React.FC = () => {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [reportData, setReportData] = useState<any>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [chartImage, setChartImage] = useState<string | null>(null);
   const [chartSource, setChartSource] = useState<string | null>(null);
   
@@ -211,6 +212,11 @@ const Dashboard: React.FC = () => {
         // Store structured report data for better display
         if (data.report_data) {
           setReportData(data.report_data);
+        }
+        
+        // Store AI analysis if available
+        if (data.ai_analysis) {
+          setAiAnalysis(data.ai_analysis);
         }
         
         // Handle chart data if available
@@ -953,6 +959,87 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
                 </div>
               )}
             </Tabs.TabPane>
+            {aiAnalysis && aiAnalysis.enabled && (
+              <Tabs.TabPane tab="AI Analysis" key="ai">
+                <div>
+                  {/* AI Confidence Score */}
+                  {aiAnalysis.confidence_score && (
+                    <Card size="small" title="AI Confidence" style={{ marginBottom: 16 }}>
+                      <Progress 
+                        percent={Math.round(aiAnalysis.confidence_score * 100)} 
+                        strokeColor={{
+                          '0%': '#108ee9',
+                          '100%': '#87d068',
+                        }}
+                      />
+                      <Text type="secondary">Model: {aiAnalysis.model || 'Claude'}</Text>
+                    </Card>
+                  )}
+
+                  {/* Market Overview from AI */}
+                  {aiAnalysis.market_overview && (
+                    <Card size="small" title="AI Market Overview" style={{ marginBottom: 16 }}>
+                      <Text>{aiAnalysis.market_overview}</Text>
+                    </Card>
+                  )}
+
+                  {/* Pattern Analysis */}
+                  {aiAnalysis.pattern_analysis && (
+                    <Card size="small" title="Pattern Analysis" style={{ marginBottom: 16 }}>
+                      <Text>{aiAnalysis.pattern_analysis}</Text>
+                    </Card>
+                  )}
+
+                  {/* Trading Strategy */}
+                  {aiAnalysis.trading_strategy && (
+                    <Card size="small" title="AI Trading Strategy" style={{ marginBottom: 16 }}>
+                      <Alert
+                        message="Dual Investment Strategy"
+                        description={aiAnalysis.trading_strategy}
+                        type="info"
+                        showIcon
+                      />
+                    </Card>
+                  )}
+
+                  {/* Risk Assessment */}
+                  {aiAnalysis.risk_assessment && (
+                    <Card size="small" title="Risk Assessment" style={{ marginBottom: 16 }}>
+                      <Text>{aiAnalysis.risk_assessment}</Text>
+                    </Card>
+                  )}
+
+                  {/* Key Insights */}
+                  {aiAnalysis.key_insights && aiAnalysis.key_insights.length > 0 && (
+                    <Card size="small" title="Key AI Insights" style={{ marginBottom: 16 }}>
+                      <ul style={{ paddingLeft: 20 }}>
+                        {aiAnalysis.key_insights.map((insight: string, index: number) => (
+                          <li key={index}>
+                            <Text>{insight}</Text>
+                          </li>
+                        ))}
+                      </ul>
+                    </Card>
+                  )}
+
+                  {/* Warnings */}
+                  {aiAnalysis.warnings && aiAnalysis.warnings.length > 0 && (
+                    <Alert
+                      message="Risk Warnings"
+                      description={
+                        <ul style={{ paddingLeft: 20, marginBottom: 0 }}>
+                          {aiAnalysis.warnings.map((warning: string, index: number) => (
+                            <li key={index}>{warning}</li>
+                          ))}
+                        </ul>
+                      }
+                      type="warning"
+                      showIcon
+                    />
+                  )}
+                </div>
+              </Tabs.TabPane>
+            )}
           </Tabs>
         )}
       </Modal>

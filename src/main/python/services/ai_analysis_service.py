@@ -1,0 +1,389 @@
+"""
+AI-powered market analysis service using Claude API
+Integrates with Anthropic Claude for intelligent market insights
+"""
+import os
+import json
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+import anthropic
+from loguru import logger
+from core.config import settings
+import asyncio
+
+class AIAnalysisService:
+    """Service for AI-powered market analysis using Claude"""
+    
+    def __init__(self):
+        """Initialize AI Analysis Service with Claude"""
+        self.api_key = os.getenv('ANTHROPIC_API_KEY')
+        self.model = os.getenv('CLAUDE_MODEL', 'claude-3-opus-20240229')
+        self.max_tokens = int(os.getenv('CLAUDE_MAX_TOKENS', '1500'))
+        self.temperature = float(os.getenv('CLAUDE_TEMPERATURE', '0.7'))
+        self.enabled = bool(self.api_key)
+        
+        if self.enabled:
+            self.client = anthropic.Anthropic(api_key=self.api_key)
+            logger.info(f"AI Analysis Service initialized with Claude model: {self.model}")
+        else:
+            logger.warning("AI Analysis Service disabled - no Anthropic API key configured")
+    
+    async def analyze_market_with_ai(
+        self, 
+        symbol: str, 
+        market_data: Dict[str, Any],
+        kline_data: Optional[Dict[str, Any]] = None,
+        include_oi: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Generate AI-powered market analysis using Claude
+        
+        Args:
+            symbol: Trading pair symbol
+            market_data: Current market data and indicators
+            kline_data: Historical K-line data
+            include_oi: Whether to include Open Interest analysis
+            
+        Returns:
+            AI-generated analysis and insights
+        """
+        if not self.enabled:
+            return {
+                'enabled': False,
+                'message': 'AI analysis not available - API key not configured'
+            }
+        
+        try:
+            # Prepare context for AI
+            context = self._prepare_market_context(symbol, market_data, kline_data)
+            
+            # Generate prompts for different aspects
+            prompts = self._create_analysis_prompts(context, include_oi)
+            
+            # Get AI responses
+            analyses = {}
+            for aspect, prompt in prompts.items():
+                try:
+                    response = await self._get_ai_response(prompt)
+                    analyses[aspect] = response
+                except Exception as e:
+                    logger.error(f"Failed to get AI response for {aspect}: {e}")
+                    analyses[aspect] = f"Analysis unavailable: {str(e)}"
+            
+            # Combine analyses into comprehensive report
+            return self._format_ai_analysis(analyses, market_data)
+            
+        except Exception as e:
+            logger.error(f"AI analysis failed for {symbol}: {e}")
+            return {
+                'enabled': True,
+                'error': str(e),
+                'message': 'AI analysis temporarily unavailable'
+            }
+    
+    def _prepare_market_context(
+        self, 
+        symbol: str, 
+        market_data: Dict[str, Any],
+        kline_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Prepare structured context for AI analysis"""
+        
+        context = {
+            'symbol': symbol,
+            'timestamp': datetime.now().isoformat(),
+            'current_price': market_data.get('current_price', 0),
+            'price_change_24h': market_data.get('price_change_24h', 0),
+            'volume_24h': market_data.get('volume_24h', 0),
+            'trend': market_data.get('trend', {}),
+            'signals': market_data.get('signals', {}),
+            'volatility': market_data.get('volatility', {}),
+            'support_resistance': market_data.get('support_resistance', {})
+        }
+        
+        # Add technical indicators if available
+        if 'signals' in market_data:
+            context['technical_indicators'] = {
+                'rsi': market_data['signals'].get('rsi_signal'),
+                'macd': market_data['signals'].get('macd_signal'),
+                'bollinger': market_data['signals'].get('bb_signal'),
+                'recommendation': market_data['signals'].get('recommendation')
+            }
+        
+        # Add K-line patterns if available
+        if kline_data:
+            context['kline_patterns'] = self._identify_patterns(kline_data)
+        
+        return context
+    
+    def _identify_patterns(self, kline_data: Dict[str, Any]) -> List[str]:
+        """Identify common K-line patterns"""
+        patterns = []
+        
+        # This is a simplified pattern recognition
+        # In production, use proper technical analysis libraries
+        if kline_data:
+            # Example patterns (placeholder logic)
+            patterns.append("Potential consolidation phase")
+            
+        return patterns
+    
+    def _create_analysis_prompts(
+        self, 
+        context: Dict[str, Any],
+        include_oi: bool = False
+    ) -> Dict[str, str]:
+        """Create specific prompts for different analysis aspects"""
+        
+        prompts = {}
+        
+        # Market Overview Prompt
+        prompts['market_overview'] = f"""
+        As a professional cryptocurrency market analyst, analyze the current market conditions for {context['symbol']}.
+        
+        Current Data:
+        - Price: ${context['current_price']:,.2f}
+        - 24h Change: {context['price_change_24h']:.2f}%
+        - 24h Volume: {context['volume_24h']:,.2f}
+        - Trend: {context['trend'].get('trend', 'NEUTRAL')} ({context['trend'].get('strength', 'MODERATE')})
+        - Volatility: {context['volatility'].get('risk_level', 'MEDIUM')}
+        
+        Technical Indicators:
+        - RSI Signal: {context.get('technical_indicators', {}).get('rsi', 'NEUTRAL')}
+        - MACD Signal: {context.get('technical_indicators', {}).get('macd', 'NEUTRAL')}
+        - Overall Recommendation: {context.get('technical_indicators', {}).get('recommendation', 'HOLD')}
+        
+        Provide a concise market overview focusing on:
+        1. Current market sentiment
+        2. Key price levels to watch
+        3. Volume analysis insights
+        Keep the response under 150 words and professional.
+        """
+        
+        # K-line Pattern Analysis Prompt
+        prompts['pattern_analysis'] = f"""
+        Analyze the K-line chart patterns for {context['symbol']} based on recent price action.
+        
+        Support Level: ${context['support_resistance'].get('support', 0):,.2f}
+        Resistance Level: ${context['support_resistance'].get('resistance', 0):,.2f}
+        Current Price: ${context['current_price']:,.2f}
+        
+        Identified Patterns: {', '.join(context.get('kline_patterns', ['No specific patterns detected']))}
+        
+        Provide insights on:
+        1. Key chart patterns forming
+        2. Potential breakout or breakdown levels
+        3. Pattern reliability and timeframe
+        Keep the response under 100 words.
+        """
+        
+        # Trading Strategy Prompt
+        prompts['trading_strategy'] = f"""
+        Based on the current market analysis for {context['symbol']}, suggest a dual investment strategy.
+        
+        Market Conditions:
+        - Trend: {context['trend'].get('trend', 'NEUTRAL')}
+        - Volatility: {context['volatility'].get('risk_level', 'MEDIUM')}
+        - Technical Signal: {context.get('technical_indicators', {}).get('recommendation', 'HOLD')}
+        
+        Recommend:
+        1. Whether to use BUY_LOW or SELL_HIGH dual investment products
+        2. Optimal strike price range (as percentage from current price)
+        3. Risk management considerations
+        4. Expected market scenario for next 24-48 hours
+        
+        Focus on dual investment products only. Keep response under 150 words.
+        """
+        
+        # Risk Assessment Prompt
+        prompts['risk_assessment'] = f"""
+        Perform a risk assessment for {context['symbol']} trading.
+        
+        Volatility Data:
+        - ATR: {context['volatility'].get('atr', 0):.2f}
+        - Volatility Ratio: {context['volatility'].get('volatility_ratio', 0):.4f}
+        - Risk Level: {context['volatility'].get('risk_level', 'MEDIUM')}
+        
+        Identify:
+        1. Main risk factors in current market
+        2. Probability of significant price movement
+        3. Recommended position sizing approach
+        Keep response under 100 words.
+        """
+        
+        # Add Open Interest analysis if requested
+        if include_oi:
+            prompts['oi_analysis'] = f"""
+            Analyze the Open Interest implications for {context['symbol']}.
+            Note: Open Interest data is currently not available in the system.
+            
+            Provide general insights on:
+            1. How OI changes typically affect price in current trend conditions
+            2. What OI levels traders should monitor
+            3. OI-based entry/exit signals
+            Keep response under 100 words.
+            """
+        
+        return prompts
+    
+    async def _get_ai_response(self, prompt: str) -> str:
+        """Get response from Claude API"""
+        try:
+            # Use Claude API
+            message = await asyncio.to_thread(
+                self.client.messages.create,
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                system="You are a professional cryptocurrency market analyst with expertise in technical analysis, risk management, and dual investment products. Provide concise, actionable insights based on data.",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+            
+            return message.content[0].text.strip()
+            
+        except anthropic.RateLimitError:
+            logger.warning("Claude API rate limit reached")
+            return "Analysis temporarily unavailable due to rate limiting. Please try again later."
+        except anthropic.AuthenticationError:
+            logger.error("Claude API authentication failed")
+            return "AI analysis unavailable - authentication error"
+        except Exception as e:
+            logger.error(f"Claude API error: {e}")
+            return f"AI analysis error: {str(e)}"
+    
+    def _format_ai_analysis(
+        self, 
+        analyses: Dict[str, str],
+        market_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Format AI analyses into structured response"""
+        
+        return {
+            'enabled': True,
+            'model': self.model,
+            'timestamp': datetime.now().isoformat(),
+            'market_overview': analyses.get('market_overview', ''),
+            'pattern_analysis': analyses.get('pattern_analysis', ''),
+            'trading_strategy': analyses.get('trading_strategy', ''),
+            'risk_assessment': analyses.get('risk_assessment', ''),
+            'oi_analysis': analyses.get('oi_analysis', ''),
+            'confidence_score': self._calculate_confidence(analyses, market_data),
+            'key_insights': self._extract_key_insights(analyses),
+            'warnings': self._generate_warnings(market_data)
+        }
+    
+    def _calculate_confidence(
+        self, 
+        analyses: Dict[str, str],
+        market_data: Dict[str, Any]
+    ) -> float:
+        """Calculate confidence score for the analysis"""
+        
+        confidence = 0.5  # Base confidence
+        
+        # Adjust based on trend clarity
+        trend = market_data.get('trend', {}).get('trend', 'NEUTRAL')
+        if trend in ['BULLISH', 'BEARISH']:
+            confidence += 0.1
+        
+        # Adjust based on signal consensus
+        signals = market_data.get('signals', {})
+        if all(s == signals.get('recommendation') for s in [
+            signals.get('rsi_signal'),
+            signals.get('macd_signal'),
+            signals.get('bb_signal')
+        ] if s):
+            confidence += 0.15
+        
+        # Adjust based on AI response quality
+        for analysis in analyses.values():
+            if analysis and len(analysis) > 50 and 'error' not in analysis.lower():
+                confidence += 0.05
+        
+        return min(confidence, 0.95)  # Cap at 95%
+    
+    def _extract_key_insights(self, analyses: Dict[str, str]) -> List[str]:
+        """Extract key insights from AI analyses"""
+        
+        insights = []
+        
+        # Extract insights from each analysis
+        for aspect, analysis in analyses.items():
+            if analysis and len(analysis) > 20:
+                # Simple extraction - in production, use NLP
+                sentences = analysis.split('.')
+                for sentence in sentences[:2]:  # Take first 2 sentences
+                    if any(keyword in sentence.lower() for keyword in [
+                        'recommend', 'suggest', 'likely', 'expect', 'potential',
+                        'watch', 'consider', 'important', 'critical'
+                    ]):
+                        insights.append(sentence.strip())
+        
+        return insights[:5]  # Return top 5 insights
+    
+    def _generate_warnings(self, market_data: Dict[str, Any]) -> List[str]:
+        """Generate risk warnings based on market conditions"""
+        
+        warnings = []
+        
+        # High volatility warning
+        if market_data.get('volatility', {}).get('risk_level') == 'HIGH':
+            warnings.append("High volatility detected - consider smaller position sizes")
+        
+        # Volume anomaly warning
+        volume = market_data.get('volume_24h', 0)
+        if volume == 0:
+            warnings.append("Volume data unavailable - trade with caution")
+        
+        # Mixed signals warning
+        signals = market_data.get('signals', {})
+        signal_values = [
+            signals.get('rsi_signal'),
+            signals.get('macd_signal'),
+            signals.get('bb_signal')
+        ]
+        if len(set(filter(None, signal_values))) > 2:
+            warnings.append("Mixed technical signals - wait for clearer confirmation")
+        
+        return warnings
+    
+    async def generate_trade_rationale(
+        self,
+        product: Dict[str, Any],
+        market_data: Dict[str, Any],
+        decision: str
+    ) -> str:
+        """Generate AI explanation for a trading decision"""
+        
+        if not self.enabled:
+            return "AI rationale not available"
+        
+        prompt = f"""
+        Explain the rationale for {decision} the following dual investment product:
+        
+        Product: {product.get('type')} for {product.get('asset')}
+        Strike Price: ${product.get('strike_price', 0):,.2f}
+        Current Price: ${market_data.get('current_price', 0):,.2f}
+        APY: {product.get('apy', 0)*100:.1f}%
+        Market Trend: {market_data.get('trend', {}).get('trend', 'NEUTRAL')}
+        
+        Provide a concise explanation (50 words max) covering:
+        1. Why this product fits current market conditions
+        2. Risk-reward assessment
+        3. Expected outcome
+        """
+        
+        try:
+            response = await self._get_ai_response(prompt)
+            return response
+        except Exception as e:
+            logger.error(f"Failed to generate trade rationale: {e}")
+            return "Unable to generate AI rationale"
+
+# Create singleton instance
+ai_analysis_service = AIAnalysisService()

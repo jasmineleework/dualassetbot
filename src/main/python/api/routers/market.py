@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from services.binance_service import binance_service
 from core.dual_investment_engine import dual_investment_engine
+from services.ai_analysis_service import ai_analysis_service
 from loguru import logger
 import pandas as pd
 
@@ -181,7 +182,7 @@ async def get_klines(
         raise HTTPException(status_code=500, detail=f"Failed to get klines: {str(e)}")
 
 @router.get("/kline-analysis/{symbol}")
-async def get_kline_analysis(symbol: str, include_chart: bool = True):
+async def get_kline_analysis(symbol: str, include_chart: bool = True, include_ai: bool = True):
     """Generate professional K-line analysis report with chart for a symbol"""
     try:
         # Get current market data
@@ -373,6 +374,38 @@ async def get_kline_analysis(symbol: str, include_chart: bool = True):
 **Risk Assessment**: {risk_level} volatility environment, suitable for {report_data['recommendation']['suitability'].lower()}
         """
         
+        # Add AI-powered analysis if enabled and API key is configured
+        ai_analysis = None
+        if include_ai:
+            try:
+                logger.info(f"Generating AI analysis for {symbol}")
+                ai_analysis = await ai_analysis_service.analyze_market_with_ai(
+                    symbol=symbol.upper(),
+                    market_data=market_analysis,
+                    kline_data={'has_data': has_kline_data} if has_kline_data else None,
+                    include_oi=False  # OI data not yet available
+                )
+                
+                if ai_analysis.get('enabled') and not ai_analysis.get('error'):
+                    logger.info(f"AI analysis generated successfully for {symbol}")
+                    # Enhance summary with AI insights
+                    if ai_analysis.get('market_overview'):
+                        summary += f"\n\n## AI Market Insights\n{ai_analysis['market_overview']}"
+                    if ai_analysis.get('key_insights'):
+                        summary += f"\n\n### Key AI Insights\n"
+                        for insight in ai_analysis['key_insights'][:3]:
+                            summary += f"• {insight}\n"
+                else:
+                    logger.info(f"AI analysis not available: {ai_analysis.get('message', 'No API key')}")
+                    
+            except Exception as ai_error:
+                logger.warning(f"Failed to generate AI analysis: {ai_error}")
+                ai_analysis = {
+                    'enabled': False,
+                    'error': str(ai_error),
+                    'message': 'AI analysis temporarily unavailable'
+                }
+        
         return {
             "symbol": symbol.upper(),
             "timestamp": pd.Timestamp.now().isoformat(),
@@ -380,7 +413,8 @@ async def get_kline_analysis(symbol: str, include_chart: bool = True):
             "report": summary.strip(),
             "report_data": report_data,  # Structured data for frontend
             "market_data": market_analysis,
-            "chart": chart_data  # Added chart data with base64 image
+            "chart": chart_data,  # Added chart data with base64 image
+            "ai_analysis": ai_analysis  # AI-powered insights
         }
         
     except Exception as e:
