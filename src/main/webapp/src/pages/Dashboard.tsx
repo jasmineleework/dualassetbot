@@ -8,7 +8,8 @@ import {
   InfoCircleOutlined,
   FileSearchOutlined,
   ThunderboltOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  RobotOutlined
 } from '@ant-design/icons';
 import { apiService, BotStatus, DualInvestmentProduct, MarketAnalysis } from '../services/api';
 import { usePriceUpdates, useSystemAlerts, usePortfolioUpdates } from '../hooks/useWebSocket';
