@@ -244,7 +244,7 @@ class BinanceService:
         }
     
     def get_24hr_ticker_stats(self, symbol: str) -> Dict[str, Any]:
-        """Get 24hr ticker statistics"""
+        """Get 24hr ticker statistics with enhanced data validation"""
         try:
             self.ensure_initialized()
             
@@ -256,47 +256,87 @@ class BinanceService:
             price_change_percent = float(ticker['priceChangePercent'])
             volume = float(ticker['volume'])
             
-            # Get real 24h high/low from 1-day kline data
-            try:
-                # Fetch 1-day kline data (last 2 days to ensure we have 24h data)
-                klines = self.client.get_klines(
-                    symbol=symbol,
-                    interval='1d',
-                    limit=2
-                )
-                
-                if klines and len(klines) > 0:
-                    # Use the most recent complete day candle
-                    # kline format: [timestamp, open, high, low, close, volume, ...]
-                    latest_kline = klines[-1] if len(klines) == 1 else klines[-2]
-                    high_24h = float(latest_kline[2])  # high
-                    low_24h = float(latest_kline[3])   # low
-                    
-                    # If today's incomplete candle has higher high or lower low, use it
-                    if len(klines) > 1:
-                        today_kline = klines[-1]
-                        today_high = float(today_kline[2])
-                        today_low = float(today_kline[3])
-                        high_24h = max(high_24h, today_high)
-                        low_24h = min(low_24h, today_low)
-                else:
-                    # Fallback to ticker data if kline fetch fails
-                    high_24h = float(ticker['highPrice'])
-                    low_24h = float(ticker['lowPrice'])
-                    
-            except Exception as kline_error:
-                logger.warning(f"Failed to get kline data for {symbol}, using ticker data: {kline_error}")
-                # Fallback to ticker data
-                high_24h = float(ticker['highPrice'])
-                low_24h = float(ticker['lowPrice'])
+            # Initialize with ticker data
+            high_24h = float(ticker['highPrice'])
+            low_24h = float(ticker['lowPrice'])
+            data_source = 'ticker'
             
-            # Sanity check for testnet data - only apply minimal corrections
+            # For testnet, apply smart data correction
             if settings.binance_testnet:
-                # Only fix if values are completely unrealistic (>100% difference)
-                if high_24h > last_price * 2:
-                    high_24h = last_price * 1.1  # 10% above current
-                if low_24h < last_price * 0.5:
-                    low_24h = last_price * 0.9  # 10% below current
+                # Check if ticker data is unrealistic (more than 50% deviation)
+                if high_24h > last_price * 1.5 or low_24h < last_price * 0.5:
+                    logger.info(f"Ticker data for {symbol} seems unrealistic, fetching hourly data")
+                    
+                    try:
+                        # Get last 24 hours of 1-hour klines for more accurate data
+                        hourly_klines = self.client.get_klines(
+                            symbol=symbol,
+                            interval='1h',
+                            limit=24
+                        )
+                        
+                        if hourly_klines and len(hourly_klines) > 0:
+                            # Extract high and low from hourly data
+                            hourly_highs = [float(k[2]) for k in hourly_klines]
+                            hourly_lows = [float(k[3]) for k in hourly_klines]
+                            
+                            # Filter out obvious outliers (more than 50% from median)
+                            import statistics
+                            if len(hourly_highs) > 3:
+                                median_high = statistics.median(hourly_highs)
+                                median_low = statistics.median(hourly_lows)
+                                
+                                # Filter outliers
+                                filtered_highs = [h for h in hourly_highs if h <= median_high * 1.5]
+                                filtered_lows = [l for l in hourly_lows if l >= median_low * 0.5]
+                                
+                                if filtered_highs and filtered_lows:
+                                    high_24h = max(filtered_highs)
+                                    low_24h = min(filtered_lows)
+                                    data_source = 'hourly_filtered'
+                                    logger.info(f"Using filtered hourly data for {symbol}: high={high_24h:.2f}, low={low_24h:.2f}")
+                            else:
+                                # Not enough data to filter, use raw hourly
+                                high_24h = max(hourly_highs)
+                                low_24h = min(hourly_lows)
+                                data_source = 'hourly'
+                        
+                    except Exception as hourly_error:
+                        logger.warning(f"Failed to get hourly data for {symbol}: {hourly_error}")
+                        # Fall back to calculated estimates
+                        data_source = 'calculated'
+                
+                # Final sanity check - ensure values are within reasonable range
+                max_deviation = 0.20  # 20% max deviation from current price
+                
+                # For high price
+                if high_24h > last_price * (1 + max_deviation):
+                    logger.debug(f"Capping high price for {symbol}: {high_24h} -> {last_price * (1 + max_deviation)}")
+                    high_24h = last_price * (1 + max_deviation)
+                    data_source = f'{data_source}_capped'
+                elif high_24h < last_price:
+                    # High should be at least current price
+                    high_24h = last_price * 1.01
+                    data_source = f'{data_source}_adjusted'
+                
+                # For low price
+                if low_24h < last_price * (1 - max_deviation):
+                    logger.debug(f"Capping low price for {symbol}: {low_24h} -> {last_price * (1 - max_deviation)}")
+                    low_24h = last_price * (1 - max_deviation)
+                    data_source = f'{data_source}_capped'
+                elif low_24h > last_price:
+                    # Low should be at most current price
+                    low_24h = last_price * 0.99
+                    data_source = f'{data_source}_adjusted'
+                
+                # Ensure high > low
+                if high_24h <= low_24h:
+                    spread = last_price * 0.02  # 2% spread
+                    high_24h = last_price + spread
+                    low_24h = last_price - spread
+                    data_source = 'corrected'
+                
+                logger.debug(f"{symbol} 24h stats - Source: {data_source}, High: {high_24h:.2f}, Low: {low_24h:.2f}, Current: {last_price:.2f}")
             
             return {
                 'symbol': ticker['symbol'],
@@ -305,7 +345,8 @@ class BinanceService:
                 'last_price': last_price,
                 'volume': volume,
                 'high_24h': high_24h,
-                'low_24h': low_24h
+                'low_24h': low_24h,
+                'data_source': data_source  # Track where the data came from
             }
             
         except Exception as e:
