@@ -1,36 +1,89 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider } from 'antd';
 import { 
   DollarOutlined, 
   LineChartOutlined, 
   RobotOutlined,
   SyncOutlined,
   ArrowUpOutlined,
-  ArrowDownOutlined 
+  ArrowDownOutlined,
+  TrophyOutlined,
+  InfoCircleOutlined,
+  FileSearchOutlined,
+  ThunderboltOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { apiService, BotStatus, DualInvestmentProduct, MarketAnalysis } from '../services/api';
 import { usePriceUpdates, useSystemAlerts, usePortfolioUpdates } from '../hooks/useWebSocket';
 import ConnectionIndicator from '../components/ConnectionIndicator';
 import { SimpleBarChart, SimplePieChart, MiniSparkline, ProgressChart } from '../components/Charts/SimpleChart';
 
-const { Title } = Typography;
+const { Title, Text, Paragraph } = Typography;
+const { Option } = Select;
+
+// Supported trading pairs
+const SUPPORTED_PAIRS = [
+  { value: 'BTCUSDT', label: 'BTC/USDT', asset: 'BTC', quote: 'USDT' },
+  { value: 'BTCUSDC', label: 'BTC/USDC', asset: 'BTC', quote: 'USDC' },
+  { value: 'ETHUSDT', label: 'ETH/USDT', asset: 'ETH', quote: 'USDT' },
+  { value: 'ETHUSDC', label: 'ETH/USDC', asset: 'ETH', quote: 'USDC' }
+];
+
+// AI Recommendation interface
+interface AIRecommendation {
+  product_id: string;
+  should_invest: boolean;
+  ai_score: number;
+  expected_return: number;
+  risk_score: number;
+  recommendation: string;
+  reasons: string[];
+  warnings: string[];
+}
+
+// Enhanced Market Analysis interface
+interface EnhancedMarketAnalysis extends MarketAnalysis {
+  price_prediction_24h?: {
+    direction: 'UP' | 'DOWN' | 'NEUTRAL';
+    confidence: number;
+    target_price?: number;
+  };
+  volatility_prediction?: {
+    level: 'LOW' | 'MEDIUM' | 'HIGH';
+    value: number;
+  };
+  support_resistance?: {
+    support: number;
+    resistance: number;
+  };
+  risk_level?: 'LOW' | 'MEDIUM' | 'HIGH';
+}
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
-  const [btcPrice, setBtcPrice] = useState<number | null>(null);
-  const [marketAnalysis, setMarketAnalysis] = useState<MarketAnalysis | null>(null);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [marketAnalysis, setMarketAnalysis] = useState<EnhancedMarketAnalysis | null>(null);
   const [products, setProducts] = useState<DualInvestmentProduct[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [stats24hr, setStats24hr] = useState<any>(null);
+  const [selectedPair, setSelectedPair] = useState<string>('BTCUSDT');
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
+  const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
+  const [analysisReport, setAnalysisReport] = useState<string | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
   
   // WebSocket hooks for real-time data
-  const { prices: realtimePrices } = usePriceUpdates(['BTCUSDT', 'ETHUSDT']);
+  const { prices: realtimePrices } = usePriceUpdates([selectedPair]);
   const { alerts, unreadCount } = useSystemAlerts(5);
   const { portfolio } = usePortfolioUpdates();
+  
+  // Get current pair info
+  const currentPairInfo = SUPPORTED_PAIRS.find(p => p.value === selectedPair);
 
-  const fetchData = async () => {
+  const fetchData = async (symbol?: string) => {
+    const targetSymbol = symbol || selectedPair;
     try {
       setRefreshing(true);
       setError(null);
@@ -56,15 +109,16 @@ const Dashboard: React.FC = () => {
 
       // Fetch all data using Promise.allSettled to handle partial failures
       const results = await Promise.allSettled([
-        apiService.getPrice('BTCUSDT'),
-        apiService.getMarketAnalysis('BTCUSDT'),
+        apiService.getPrice(targetSymbol),
+        apiService.getMarketAnalysis(targetSymbol),
         apiService.getDualInvestmentProducts(),
-        apiService.get24hrStats('BTCUSDT')
+        apiService.get24hrStats(targetSymbol),
+        fetchAIRecommendations(targetSymbol)
       ]);
 
       // Process results even if some fail
       if (results[0].status === 'fulfilled') {
-        setBtcPrice(results[0].value.price);
+        setCurrentPrice(results[0].value.price);
       }
       
       if (results[1].status === 'fulfilled') {
@@ -79,6 +133,10 @@ const Dashboard: React.FC = () => {
         setStats24hr(results[3].value);
       }
       
+      if (results[4].status === 'fulfilled') {
+        // AI recommendations handled in fetchAIRecommendations
+      }
+      
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -89,11 +147,89 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(selectedPair);
+  }, [selectedPair]);
+  
+  useEffect(() => {
     // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(() => fetchData(), 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedPair]);
+  
+  // Fetch AI recommendations
+  const fetchAIRecommendations = async (symbol: string) => {
+    try {
+      const response = await fetch(`http://localhost:8081/api/v1/dual-investment/ai-recommendations/${symbol}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAiRecommendations(data.recommendations || []);
+        return data;
+      }
+    } catch (err) {
+      console.error('Failed to fetch AI recommendations:', err);
+    }
+    return null;
+  };
+  
+  // Generate K-line analysis report
+  const generateAnalysisReport = async () => {
+    setGeneratingReport(true);
+    setAnalysisModalVisible(true);
+    
+    try {
+      // This will be enhanced with actual K-line analysis in Phase 3
+      const mockReport = `
+## ${currentPairInfo?.label} Market Analysis Report
+
+### Current Market Status
+- **Price**: $${currentPrice?.toLocaleString() || 'N/A'}
+- **24h Change**: ${stats24hr?.price_change_percent || 0}%
+- **Trend**: ${marketAnalysis?.trend?.trend || 'N/A'}
+- **Volatility**: ${marketAnalysis?.volatility?.risk_level || 'N/A'}
+
+### Technical Analysis
+- **RSI Signal**: ${marketAnalysis?.signals?.rsi_signal || 'N/A'}
+- **MACD Signal**: ${marketAnalysis?.signals?.macd_signal || 'N/A'}
+- **Support Level**: $${marketAnalysis?.support_resistance?.support?.toLocaleString() || 'TBD'}
+- **Resistance Level**: $${marketAnalysis?.support_resistance?.resistance?.toLocaleString() || 'TBD'}
+
+### 24 Hour Prediction
+- **Price Direction**: ${marketAnalysis?.price_prediction_24h?.direction || 'NEUTRAL'}
+- **Volatility Expectation**: ${marketAnalysis?.volatility_prediction?.level || 'MEDIUM'}
+- **Risk Level**: ${marketAnalysis?.risk_level || 'MEDIUM'}
+
+### Investment Recommendation
+Based on current market conditions, ${marketAnalysis?.signals?.recommendation === 'BUY' ? 'consider investing in dual investment products with strike prices below current market price' : 'exercise caution and wait for better entry points'}.
+      `;
+      
+      setAnalysisReport(mockReport);
+    } catch (err) {
+      setAnalysisReport('Failed to generate analysis report');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+  
+  // Handle pair selection change
+  const handlePairChange = (value: string) => {
+    setSelectedPair(value);
+    setCurrentPrice(null);
+    setMarketAnalysis(null);
+    setStats24hr(null);
+    setAiRecommendations([]);
+  };
+  
+  // Get recommendation color
+  const getRecommendationColor = (recommendation: string) => {
+    switch (recommendation) {
+      case 'STRONG_BUY': return '#52c41a';
+      case 'BUY': return '#1890ff';
+      case 'CONSIDER': return '#faad14';
+      case 'WEAK_BUY': return '#fa8c16';
+      case 'SKIP': return '#ff4d4f';
+      default: return '#d9d9d9';
+    }
+  };
 
   const getTrendIcon = (trend: string) => {
     return trend === 'BULLISH' ? 
@@ -115,6 +251,7 @@ const Dashboard: React.FC = () => {
     return colors[signal] || 'default';
   };
 
+  // Enhanced product columns with AI recommendations
   const productColumns = [
     {
       title: 'Product ID',
@@ -146,7 +283,11 @@ const Dashboard: React.FC = () => {
       title: 'APY',
       dataIndex: 'apy',
       key: 'apy',
-      render: (apy: number) => `${(apy * 100).toFixed(1)}%`,
+      render: (apy: number) => (
+        <Text strong style={{ color: '#52c41a' }}>
+          {(apy * 100).toFixed(1)}%
+        </Text>
+      ),
     },
     {
       title: 'Term',
@@ -155,13 +296,70 @@ const Dashboard: React.FC = () => {
       render: (days: number) => `${days} days`,
     },
     {
+      title: 'AI Score',
+      key: 'ai_score',
+      render: (_: any, record: DualInvestmentProduct) => {
+        const recommendation = aiRecommendations.find(r => r.product_id === record.id);
+        if (!recommendation) return <Text type="secondary">-</Text>;
+        
+        return (
+          <Tooltip 
+            title={
+              <div>
+                <div><strong>Recommendation:</strong> {recommendation.recommendation}</div>
+                <div><strong>Expected Return:</strong> {(recommendation.expected_return * 100).toFixed(2)}%</div>
+                <div><strong>Risk Score:</strong> {(recommendation.risk_score * 100).toFixed(0)}%</div>
+                <Divider style={{ margin: '8px 0' }} />
+                <div><strong>Reasons:</strong></div>
+                <ul style={{ paddingLeft: 16, margin: '4px 0' }}>
+                  {recommendation.reasons.slice(0, 3).map((reason, idx) => (
+                    <li key={idx} style={{ fontSize: 12 }}>{reason}</li>
+                  ))}
+                </ul>
+                {recommendation.warnings.length > 0 && (
+                  <>
+                    <div><strong>Warnings:</strong></div>
+                    <ul style={{ paddingLeft: 16, margin: '4px 0' }}>
+                      {recommendation.warnings.slice(0, 2).map((warning, idx) => (
+                        <li key={idx} style={{ fontSize: 12, color: '#ff4d4f' }}>{warning}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            }
+            placement="left"
+          >
+            <div style={{ cursor: 'pointer' }}>
+              <Progress 
+                percent={Math.round(recommendation.ai_score * 100)} 
+                size="small" 
+                strokeColor={getRecommendationColor(recommendation.recommendation)}
+                format={(percent) => `${percent}%`}
+              />
+              {recommendation.should_invest && (
+                <TrophyOutlined style={{ color: '#faad14', marginLeft: 8 }} />
+              )}
+            </div>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: 'Action',
       key: 'action',
-      render: (_: any, record: DualInvestmentProduct) => (
-        <Button type="primary" size="small">
-          Subscribe
-        </Button>
-      ),
+      render: (_: any, record: DualInvestmentProduct) => {
+        const recommendation = aiRecommendations.find(r => r.product_id === record.id);
+        return (
+          <Button 
+            type={recommendation?.should_invest ? "primary" : "default"}
+            size="small"
+            icon={recommendation?.should_invest ? <ThunderboltOutlined /> : undefined}
+          >
+            {recommendation?.should_invest ? 'Invest' : 'Subscribe'}
+          </Button>
+        );
+      },
     },
   ];
 
@@ -182,7 +380,7 @@ const Dashboard: React.FC = () => {
         type="error"
         showIcon
         action={
-          <Button size="small" onClick={fetchData}>
+          <Button size="small" onClick={() => fetchData()}>
             Retry
           </Button>
         }
@@ -191,14 +389,28 @@ const Dashboard: React.FC = () => {
   }
 
   // Use realtime price if available, otherwise use fetched price
-  const displayBtcPrice = realtimePrices['BTCUSDT']?.price || btcPrice;
-  const displayBtcChange = realtimePrices['BTCUSDT']?.change24h || marketAnalysis?.price_change_24h || 0;
+  const displayPrice = realtimePrices[selectedPair]?.price || currentPrice;
+  const displayChange = realtimePrices[selectedPair]?.change24h || marketAnalysis?.price_change_24h || 0;
 
   return (
     <div style={{ padding: 24 }}>
       <ConnectionIndicator />
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={2}>Trading Dashboard</Title>
+        <Space>
+          <Title level={2} style={{ margin: 0 }}>Market Dashboard</Title>
+          <Select
+            value={selectedPair}
+            onChange={handlePairChange}
+            style={{ width: 150 }}
+            size="large"
+          >
+            {SUPPORTED_PAIRS.map(pair => (
+              <Option key={pair.value} value={pair.value}>
+                {pair.label}
+              </Option>
+            ))}
+          </Select>
+        </Space>
         <Space>
           {unreadCount > 0 && (
             <Badge count={unreadCount} overflowCount={9}>
@@ -207,9 +419,16 @@ const Dashboard: React.FC = () => {
               </Button>
             </Badge>
           )}
+          <Button
+            icon={<FileSearchOutlined />}
+            onClick={generateAnalysisReport}
+            type="default"
+          >
+            View Analysis Report
+          </Button>
           <Button 
             icon={<SyncOutlined spin={refreshing} />} 
-            onClick={fetchData}
+            onClick={() => fetchData()}
             loading={refreshing}
           >
             Refresh
@@ -231,13 +450,13 @@ const Dashboard: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="BTC Price"
-              value={displayBtcPrice || 0}
+              title={`${currentPairInfo?.asset || ''} Price`}
+              value={displayPrice || 0}
               precision={2}
               prefix="$"
               suffix={
                 <span style={{ fontSize: '14px' }}>
-                  {realtimePrices['BTCUSDT'] && <Badge status="processing" style={{ marginRight: 8 }} />}
+                  {realtimePrices[selectedPair] && <Badge status="processing" style={{ marginRight: 8 }} />}
                   {marketAnalysis && getTrendIcon(marketAnalysis.trend.trend)}
                 </span>
               }
@@ -296,7 +515,7 @@ const Dashboard: React.FC = () => {
                   <Statistic
                     title="24h Volume"
                     value={stats24hr.volume}
-                    suffix="BTC"
+                    suffix={currentPairInfo?.asset || ''}
                     precision={2}
                   />
                 </Col>
@@ -406,6 +625,38 @@ const Dashboard: React.FC = () => {
           pagination={false}
         />
       </Card>
+      
+      {/* Analysis Report Modal */}
+      <Modal
+        title={
+          <Space>
+            <FileSearchOutlined />
+            <span>Professional Market Analysis Report</span>
+          </Space>
+        }
+        visible={analysisModalVisible}
+        onCancel={() => setAnalysisModalVisible(false)}
+        width={800}
+        footer={[
+          <Button key="close" onClick={() => setAnalysisModalVisible(false)}>
+            Close
+          </Button>,
+          <Button key="regenerate" type="primary" onClick={generateAnalysisReport} loading={generatingReport}>
+            Regenerate Report
+          </Button>
+        ]}
+      >
+        {generatingReport ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Spin size="large" />
+            <p style={{ marginTop: 16 }}>Generating professional analysis report...</p>
+          </div>
+        ) : (
+          <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+            {analysisReport}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

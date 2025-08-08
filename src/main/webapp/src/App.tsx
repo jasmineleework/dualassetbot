@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ConfigProvider, Layout, Typography, Menu, notification, Button, Drawer } from 'antd';
 import { 
   DashboardOutlined, 
-  LineChartOutlined, 
   SettingOutlined,
   RobotOutlined,
-  ThunderboltOutlined,
   WalletOutlined,
   PlayCircleOutlined,
   MonitorOutlined,
@@ -14,13 +12,11 @@ import {
   MenuOutlined
 } from '@ant-design/icons';
 import Dashboard from './pages/Dashboard';
-import AIRecommendations from './pages/AIRecommendations';
 import Portfolio from './pages/Portfolio';
 import AutoTrading from './pages/AutoTrading';
 import SystemMonitor from './pages/SystemMonitor';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import MarketAnalysis from './pages/MarketAnalysis';
 import AIChat from './pages/AIChat';
 import wsService from './services/websocket';
 import { useSystemAlerts } from './hooks/useWebSocket';
@@ -77,12 +73,8 @@ function App() {
         return <SystemMonitor />;
       case 'reports':
         return <Reports />;
-      case 'ai-recommendations':
-        return <AIRecommendations />;
       case 'ai-chat':
         return <AIChat />;
-      case 'market':
-        return <MarketAnalysis />;
       case 'settings':
         return <Settings />;
       default:
@@ -101,7 +93,7 @@ function App() {
       style={{ height: '100%', borderRight: 0 }}
     >
       <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
-        Dashboard
+        Market Dashboard
       </Menu.Item>
       <Menu.Item key="portfolio" icon={<WalletOutlined />}>
         Portfolio
@@ -115,14 +107,8 @@ function App() {
       <Menu.Item key="reports" icon={<FileTextOutlined />}>
         Reports
       </Menu.Item>
-      <Menu.Item key="ai-recommendations" icon={<ThunderboltOutlined />}>
-        AI Recommendations
-      </Menu.Item>
       <Menu.Item key="ai-chat" icon={<CommentOutlined />}>
         AI Chat
-      </Menu.Item>
-      <Menu.Item key="market" icon={<LineChartOutlined />}>
-        Market Analysis
       </Menu.Item>
       <Menu.Item key="settings" icon={<SettingOutlined />}>
         Settings

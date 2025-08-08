@@ -10,6 +10,15 @@ from loguru import logger
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
+class PricePrediction(BaseModel):
+    direction: str  # 'UP', 'DOWN', 'NEUTRAL'
+    confidence: float
+    target_price: Optional[float] = None
+
+class VolatilityPrediction(BaseModel):
+    level: str  # 'LOW', 'MEDIUM', 'HIGH'
+    value: float
+
 class MarketAnalysisResponse(BaseModel):
     symbol: str
     current_price: float
@@ -18,6 +27,9 @@ class MarketAnalysisResponse(BaseModel):
     volatility: Dict[str, Any]
     signals: Dict[str, str]
     support_resistance: Dict[str, float]
+    price_prediction_24h: Optional[PricePrediction] = None
+    volatility_prediction: Optional[VolatilityPrediction] = None
+    risk_level: Optional[str] = None
 
 @router.get("/price/{symbol}")
 async def get_symbol_price(symbol: str):
@@ -34,7 +46,9 @@ async def get_symbol_price(symbol: str):
         logger.warning(f"Using mock price for {symbol}: {e}")
         mock_prices = {
             "BTCUSDT": 95234.56,
+            "BTCUSDC": 95234.56,
             "ETHUSDT": 3245.67,
+            "ETHUSDC": 3245.67,
             "BNBUSDT": 567.89
         }
         return {
@@ -52,13 +66,60 @@ async def get_market_analysis(symbol: str):
     """Get comprehensive market analysis for a symbol"""
     try:
         analysis = dual_investment_engine.analyze_market_conditions(symbol.upper())
-        return MarketAnalysisResponse(**analysis)
+        
+        # Add enhanced predictions
+        current_price = analysis.get('current_price', 0)
+        trend = analysis.get('trend', {}).get('trend', 'NEUTRAL')
+        volatility_ratio = analysis.get('volatility', {}).get('volatility_ratio', 0.02)
+        
+        # Simple price prediction based on trend
+        if trend == 'BULLISH':
+            price_prediction = PricePrediction(
+                direction='UP',
+                confidence=0.65,
+                target_price=current_price * 1.02
+            )
+        elif trend == 'BEARISH':
+            price_prediction = PricePrediction(
+                direction='DOWN',
+                confidence=0.65,
+                target_price=current_price * 0.98
+            )
+        else:
+            price_prediction = PricePrediction(
+                direction='NEUTRAL',
+                confidence=0.5,
+                target_price=current_price
+            )
+        
+        # Volatility prediction
+        if volatility_ratio < 0.01:
+            volatility_pred = VolatilityPrediction(level='LOW', value=volatility_ratio)
+        elif volatility_ratio < 0.025:
+            volatility_pred = VolatilityPrediction(level='MEDIUM', value=volatility_ratio)
+        else:
+            volatility_pred = VolatilityPrediction(level='HIGH', value=volatility_ratio)
+        
+        # Risk level assessment
+        risk_level = 'LOW'
+        if volatility_ratio > 0.025 and trend == 'BEARISH':
+            risk_level = 'HIGH'
+        elif volatility_ratio > 0.015:
+            risk_level = 'MEDIUM'
+        
+        return MarketAnalysisResponse(
+            **analysis,
+            price_prediction_24h=price_prediction,
+            volatility_prediction=volatility_pred,
+            risk_level=risk_level
+        )
     except ValueError as e:
         # Return mock analysis if Binance is not connected
         logger.warning(f"Using mock analysis for {symbol}: {e}")
+        mock_price = 95234.56 if symbol.upper() == "BTCUSDT" else 3245.67 if symbol.upper() == "ETHUSDT" else 100.0
         return MarketAnalysisResponse(
             symbol=symbol.upper(),
-            current_price=95234.56 if symbol.upper() == "BTCUSDT" else 100.0,
+            current_price=mock_price,
             price_change_24h=-2.34,
             trend={"trend": "SIDEWAYS", "strength": "NEUTRAL"},
             volatility={"atr": 1234.56, "volatility_ratio": 0.013, "risk_level": "MEDIUM"},
@@ -69,10 +130,20 @@ async def get_market_analysis(symbol: str):
                 "recommendation": "HOLD"
             },
             support_resistance={
-                "support": 92000.0,
-                "resistance": 98000.0,
-                "pivot": 95000.0
-            }
+                "support": mock_price * 0.95,
+                "resistance": mock_price * 1.05,
+                "pivot": mock_price
+            },
+            price_prediction_24h=PricePrediction(
+                direction='NEUTRAL',
+                confidence=0.5,
+                target_price=mock_price
+            ),
+            volatility_prediction=VolatilityPrediction(
+                level='MEDIUM',
+                value=0.013
+            ),
+            risk_level='MEDIUM'
         )
     except Exception as e:
         logger.error(f"Failed to analyze {symbol}: {e}")
