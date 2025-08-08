@@ -173,17 +173,9 @@ class ScreenshotService:
             'error': None
         }
         
-        # Try browser screenshot first
-        try:
-            image_base64 = self.capture_binance_chart(symbol)
-            if image_base64:
-                result['success'] = True
-                result['source'] = 'binance_futures'
-                result['image_base64'] = image_base64
-                return result
-        except Exception as e:
-            logger.warning(f"Browser screenshot failed: {e}")
-            result['error'] = str(e)
+        # Skip browser screenshot for now - go directly to chart generation
+        # This avoids Selenium/Chrome dependency issues
+        logger.info(f"Using chart generator for {symbol} (browser screenshot disabled)")
         
         # Fallback to static chart generation
         try:
