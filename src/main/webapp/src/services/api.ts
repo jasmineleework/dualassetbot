@@ -171,7 +171,7 @@ export interface ScheduledTask {
 class ApiService {
   private async fetchJson<T>(url: string): Promise<T> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     try {
       const response = await fetch(`${API_BASE_URL}${url}`, {

@@ -158,15 +158,28 @@ const Dashboard: React.FC = () => {
   
   // Fetch AI recommendations
   const fetchAIRecommendations = async (symbol: string) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     try {
-      const response = await fetch(`http://localhost:8081/api/v1/dual-investment/ai-recommendations/${symbol}`);
+      const response = await fetch(
+        `http://localhost:8081/api/v1/dual-investment/ai-recommendations/${symbol}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
         const data = await response.json();
         setAiRecommendations(data.recommendations || []);
         return data;
       }
-    } catch (err) {
-      console.error('Failed to fetch AI recommendations:', err);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        console.error('AI recommendations request timeout');
+      } else {
+        console.error('Failed to fetch AI recommendations:', err);
+      }
     }
     return null;
   };
