@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs, message } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs, message, Descriptions } from 'antd';
 import { 
   SyncOutlined,
   ArrowUpOutlined,
@@ -72,6 +72,7 @@ const Dashboard: React.FC = () => {
   const [analysisReport, setAnalysisReport] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [analysisData, setAnalysisData] = useState<any>(null);
+  const [reportData, setReportData] = useState<any>(null);
   const [chartImage, setChartImage] = useState<string | null>(null);
   const [chartSource, setChartSource] = useState<string | null>(null);
   
@@ -206,6 +207,11 @@ const Dashboard: React.FC = () => {
         const data = await response.json();
         setAnalysisReport(data.report);
         setAnalysisData(data.market_data);
+        
+        // Store structured report data for better display
+        if (data.report_data) {
+          setReportData(data.report_data);
+        }
         
         // Handle chart data if available
         if (data.chart && data.chart.image_base64) {
@@ -553,19 +559,9 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
           <Row gutter={16} style={{ marginBottom: 24 }}>
             <Col span={24}>
               <Card 
-                title="Market Intelligence & Predictions (Based on Analysis Report)" 
+                title="Market Intelligence & Predictions" 
                 extra={
-                  <Space>
-                    <Button 
-                      size="small" 
-                      icon={<SyncOutlined />} 
-                      onClick={generateAnalysisReport}
-                      loading={generatingReport}
-                    >
-                      Update Analysis
-                    </Button>
-                    <Text type="secondary">From K-line Analysis</Text>
-                  </Space>
+                  <Text type="secondary">Based on Technical Analysis</Text>
                 }
               >
                 <Row gutter={16}>
@@ -776,9 +772,186 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
               )}
             </Tabs.TabPane>
             <Tabs.TabPane tab="Technical Analysis" key="analysis">
-              <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                {analysisReport}
-              </div>
+              {reportData ? (
+                <div>
+                  {/* Overview Section */}
+                  <Card size="small" title="Market Overview" style={{ marginBottom: 16 }}>
+                    <Descriptions column={2} size="small">
+                      <Descriptions.Item label="Current Price">
+                        <Text strong>${reportData.overview?.current_price?.toLocaleString() || '0.00'}</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="24h Change">
+                        <Text style={{ color: reportData.overview?.price_change_24h > 0 ? '#52c41a' : '#f5222d' }}>
+                          {reportData.overview?.price_change_24h?.toFixed(2) || '0.00'}%
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="24h High">
+                        ${reportData.overview?.high_24h?.toLocaleString() || '0.00'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="24h Low">
+                        ${reportData.overview?.low_24h?.toLocaleString() || '0.00'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="24h Volume">
+                        {reportData.overview?.volume_24h?.toLocaleString() || '0.00'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Volume Trend">
+                        <Tag color={reportData.overview?.volume_change === 'POSITIVE' ? 'green' : 'red'}>
+                          {reportData.overview?.volume_change || 'NEUTRAL'}
+                        </Tag>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+
+                  {/* Technical Indicators */}
+                  <Card size="small" title="Technical Indicators" style={{ marginBottom: 16 }}>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Statistic
+                          title="Trend"
+                          value={reportData.technical_analysis?.trend?.direction || 'NEUTRAL'}
+                          valueStyle={{ 
+                            color: reportData.technical_analysis?.trend?.direction === 'BULLISH' ? '#52c41a' : 
+                                   reportData.technical_analysis?.trend?.direction === 'BEARISH' ? '#f5222d' : '#666',
+                            fontSize: 16
+                          }}
+                          suffix={
+                            <Tag color="blue" style={{ marginLeft: 8 }}>
+                              {reportData.technical_analysis?.trend?.strength || 'MODERATE'}
+                            </Tag>
+                          }
+                        />
+                      </Col>
+                      <Col span={8}>
+                        <Statistic
+                          title="RSI"
+                          value={reportData.technical_analysis?.indicators?.rsi?.value || 50}
+                          suffix={
+                            <Tag color={
+                              reportData.technical_analysis?.indicators?.rsi?.value > 70 ? 'red' :
+                              reportData.technical_analysis?.indicators?.rsi?.value < 30 ? 'green' : 'blue'
+                            }>
+                              {reportData.technical_analysis?.indicators?.rsi?.signal || 'NEUTRAL'}
+                            </Tag>
+                          }
+                        />
+                      </Col>
+                      <Col span={8}>
+                        <Statistic
+                          title="Volatility"
+                          value={reportData.technical_analysis?.volatility?.level || 'MEDIUM'}
+                          valueStyle={{ fontSize: 16 }}
+                          suffix={
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              ATR: {reportData.technical_analysis?.volatility?.atr?.toFixed(2) || '0.00'}
+                            </Text>
+                          }
+                        />
+                      </Col>
+                    </Row>
+                    <Divider style={{ margin: '12px 0' }} />
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Text type="secondary">Support Level</Text>
+                        <div><Text strong>${reportData.technical_analysis?.support_resistance?.support?.toLocaleString() || '0.00'}</Text></div>
+                      </Col>
+                      <Col span={8}>
+                        <Text type="secondary">Pivot Point</Text>
+                        <div><Text strong>${reportData.technical_analysis?.support_resistance?.pivot?.toLocaleString() || '0.00'}</Text></div>
+                      </Col>
+                      <Col span={8}>
+                        <Text type="secondary">Resistance Level</Text>
+                        <div><Text strong>${reportData.technical_analysis?.support_resistance?.resistance?.toLocaleString() || '0.00'}</Text></div>
+                      </Col>
+                    </Row>
+                  </Card>
+
+                  {/* 24h Prediction */}
+                  <Card size="small" title="24-Hour Forecast" style={{ marginBottom: 16 }}>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <div style={{ marginBottom: 8 }}>
+                          <Text type="secondary">Price Direction</Text>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {reportData.prediction?.['24h']?.direction === 'UP' ? 
+                            <ArrowUpOutlined style={{ color: '#52c41a', fontSize: 24 }} /> :
+                            reportData.prediction?.['24h']?.direction === 'DOWN' ?
+                            <ArrowDownOutlined style={{ color: '#f5222d', fontSize: 24 }} /> :
+                            <Text style={{ fontSize: 24 }}>→</Text>
+                          }
+                          <Text strong style={{ fontSize: 18 }}>
+                            {reportData.prediction?.['24h']?.direction || 'SIDEWAYS'}
+                          </Text>
+                          <Progress 
+                            percent={reportData.prediction?.['24h']?.confidence * 100 || 50} 
+                            size="small" 
+                            style={{ width: 100 }}
+                            strokeColor="#1890ff"
+                          />
+                        </div>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          Confidence: {(reportData.prediction?.['24h']?.confidence * 100 || 50).toFixed(0)}%
+                        </Text>
+                      </Col>
+                      <Col span={12}>
+                        <div style={{ marginBottom: 8 }}>
+                          <Text type="secondary">Target Range</Text>
+                        </div>
+                        <div>
+                          <Text strong>
+                            ${reportData.prediction?.['24h']?.target_range?.low?.toLocaleString() || '0.00'} - 
+                            ${reportData.prediction?.['24h']?.target_range?.high?.toLocaleString() || '0.00'}
+                          </Text>
+                        </div>
+                        <Tag color="orange" style={{ marginTop: 8 }}>
+                          {reportData.prediction?.['24h']?.expected_volatility || 'MEDIUM'} Volatility
+                        </Tag>
+                      </Col>
+                    </Row>
+                  </Card>
+
+                  {/* Trading Recommendation */}
+                  <Alert
+                    message="Trading Recommendation"
+                    description={
+                      <div>
+                        <div style={{ marginBottom: 8 }}>
+                          <Tag color={
+                            reportData.recommendation?.signal === 'BUY' || reportData.recommendation?.signal === 'STRONG_BUY' ? 'green' :
+                            reportData.recommendation?.signal === 'SELL' || reportData.recommendation?.signal === 'STRONG_SELL' ? 'red' : 'blue'
+                          } style={{ marginRight: 8 }}>
+                            {reportData.recommendation?.signal || 'HOLD'}
+                          </Tag>
+                          <Tag color="purple">
+                            {reportData.recommendation?.strategy || 'WAIT'}
+                          </Tag>
+                        </div>
+                        <Text>{reportData.recommendation?.description || 'No specific recommendation at this time'}</Text>
+                        <div style={{ marginTop: 8 }}>
+                          <Text type="secondary">Risk Level: {reportData.recommendation?.risk_level || 'MEDIUM'} | 
+                            Suitable for: {reportData.recommendation?.suitability || 'Balanced portfolios'}</Text>
+                        </div>
+                      </div>
+                    }
+                    type={
+                      reportData.recommendation?.signal === 'BUY' || reportData.recommendation?.signal === 'STRONG_BUY' ? 'success' :
+                      reportData.recommendation?.signal === 'SELL' || reportData.recommendation?.signal === 'STRONG_SELL' ? 'warning' : 'info'
+                    }
+                    showIcon
+                  />
+
+                  {/* Summary Text */}
+                  <div style={{ marginTop: 16, padding: 16, background: '#f5f5f5', borderRadius: 4 }}>
+                    <Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>
+                      {analysisReport}
+                    </Text>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                  {analysisReport}
+                </div>
+              )}
             </Tabs.TabPane>
           </Tabs>
         )}

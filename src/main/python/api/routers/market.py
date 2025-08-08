@@ -189,18 +189,36 @@ async def get_kline_analysis(symbol: str, include_chart: bool = True):
         
         # Get K-line data for analysis
         try:
+            # Get 24hr stats from ticker API for accurate data
+            stats_24hr = binance_service.get_24hr_ticker_stats(symbol.upper())
+            
+            # Get K-line data
             df = binance_service.get_klines(symbol.upper(), "1h", 24)
             has_kline_data = True
-            latest_close = df['Close'].iloc[-1] if not df.empty else market_analysis.get('current_price', 0)
-            highest_24h = df['High'].max() if not df.empty else 0
-            lowest_24h = df['Low'].min() if not df.empty else 0
-            volume_24h = df['Volume'].sum() if not df.empty else 0
-        except:
+            
+            # Use correct column names (lowercase)
+            latest_close = df['close'].iloc[-1] if not df.empty else market_analysis.get('current_price', 0)
+            
+            # Use 24hr stats from API for accurate values
+            highest_24h = stats_24hr.get('high_24h', df['high'].max() if not df.empty else 0)
+            lowest_24h = stats_24hr.get('low_24h', df['low'].min() if not df.empty else 0)
+            volume_24h = stats_24hr.get('volume', df['volume'].sum() if not df.empty else 0)
+            
+        except Exception as e:
+            logger.warning(f"Failed to get kline data for {symbol}: {e}")
             has_kline_data = False
             latest_close = market_analysis.get('current_price', 0)
-            highest_24h = 0
-            lowest_24h = 0
-            volume_24h = 0
+            
+            # Try to get 24hr stats as fallback
+            try:
+                stats_24hr = binance_service.get_24hr_ticker_stats(symbol.upper())
+                highest_24h = stats_24hr.get('high_24h', 0)
+                lowest_24h = stats_24hr.get('low_24h', 0)
+                volume_24h = stats_24hr.get('volume', 0)
+            except:
+                highest_24h = 0
+                lowest_24h = 0
+                volume_24h = 0
         
         # Generate chart if requested
         chart_data = None
@@ -235,64 +253,132 @@ async def get_kline_analysis(symbol: str, include_chart: bool = True):
             except Exception as chart_error:
                 logger.warning(f"Could not generate chart for {symbol}: {chart_error}")
         
-        # Generate analysis report (enhanced with chart reference if available)
-        report = f"""
-# Professional K-Line Analysis Report
-## {symbol.upper()} - {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}
+        # Generate structured analysis report
+        trend = market_analysis.get('trend', {})
+        signals = market_analysis.get('signals', {})
+        volatility = market_analysis.get('volatility', {})
+        support_resistance = market_analysis.get('support_resistance', {})
+        
+        # Calculate predictions
+        trend_direction = trend.get('trend', 'NEUTRAL')
+        risk_level = volatility.get('risk_level', 'MEDIUM')
+        recommendation = signals.get('recommendation', 'HOLD')
+        
+        # Price targets based on volatility and trend
+        volatility_ratio = volatility.get('volatility_ratio', 0.02)
+        if trend_direction == 'BULLISH':
+            target_low = latest_close * (1 - volatility_ratio * 0.5)
+            target_high = latest_close * (1 + volatility_ratio * 2)
+            price_direction = 'UP'
+            confidence = 0.65
+        elif trend_direction == 'BEARISH':
+            target_low = latest_close * (1 - volatility_ratio * 2)
+            target_high = latest_close * (1 + volatility_ratio * 0.5)
+            price_direction = 'DOWN'
+            confidence = 0.65
+        else:
+            target_low = latest_close * (1 - volatility_ratio)
+            target_high = latest_close * (1 + volatility_ratio)
+            price_direction = 'SIDEWAYS'
+            confidence = 0.5
+        
+        # Investment strategy recommendation
+        if recommendation in ['BUY', 'STRONG_BUY']:
+            strategy_recommendation = 'BUY_LOW'
+            strategy_description = 'Consider BUY_LOW dual investment products with strike prices 2-5% below current market price'
+        elif recommendation in ['SELL', 'STRONG_SELL']:
+            strategy_recommendation = 'SELL_HIGH'
+            strategy_description = 'Consider SELL_HIGH dual investment products with strike prices 2-5% above current market price'
+        else:
+            strategy_recommendation = 'WAIT'
+            strategy_description = 'Wait for clearer market signals before entering new dual investment positions'
+        
+        # Build structured report data
+        report_data = {
+            'overview': {
+                'symbol': symbol.upper(),
+                'timestamp': pd.Timestamp.now().isoformat(),
+                'current_price': latest_close,
+                'price_change_24h': market_analysis.get('price_change_24h', 0),
+                'high_24h': highest_24h,
+                'low_24h': lowest_24h,
+                'volume_24h': volume_24h,
+                'volume_change': market_analysis.get('volume_analysis', {}).get('obv_trend', 'NEUTRAL')
+            },
+            'technical_analysis': {
+                'trend': {
+                    'direction': trend_direction,
+                    'strength': trend.get('strength', 'MODERATE'),
+                    'ema_signal': trend.get('ema_trend', 'NEUTRAL')
+                },
+                'indicators': {
+                    'rsi': {
+                        'value': signals.get('rsi_value', 50),
+                        'signal': signals.get('rsi_signal', 'NEUTRAL')
+                    },
+                    'macd': {
+                        'signal': signals.get('macd_signal', 'NEUTRAL'),
+                        'histogram': signals.get('macd_histogram', 0)
+                    },
+                    'bollinger': {
+                        'signal': signals.get('bb_signal', 'NEUTRAL'),
+                        'position': signals.get('bb_position', 'MIDDLE')
+                    },
+                    'mfi': market_analysis.get('volume_analysis', {}).get('mfi', 50)
+                },
+                'support_resistance': {
+                    'support': support_resistance.get('support', latest_close * 0.95),
+                    'resistance': support_resistance.get('resistance', latest_close * 1.05),
+                    'pivot': support_resistance.get('pivot', latest_close)
+                },
+                'volatility': {
+                    'level': risk_level,
+                    'atr': volatility.get('atr', 0),
+                    'ratio': volatility_ratio,
+                    'description': 'High volatility - larger price swings expected' if risk_level == 'HIGH' else 'Low volatility - stable price action' if risk_level == 'LOW' else 'Moderate volatility - normal market conditions'
+                }
+            },
+            'prediction': {
+                '24h': {
+                    'direction': price_direction,
+                    'confidence': confidence,
+                    'target_range': {
+                        'low': target_low,
+                        'high': target_high
+                    },
+                    'expected_volatility': risk_level
+                }
+            },
+            'recommendation': {
+                'signal': recommendation,
+                'strategy': strategy_recommendation,
+                'description': strategy_description,
+                'risk_level': risk_level,
+                'suitability': 'Aggressive traders' if risk_level == 'LOW' else 'Conservative traders' if risk_level == 'HIGH' else 'Balanced portfolios'
+            }
+        }
+        
+        # Generate human-readable summary
+        summary = f"""
+## Market Analysis Summary for {symbol.upper()}
 
-### Market Overview
-- **Current Price**: ${latest_close:,.2f}
-- **24h High**: ${highest_24h:,.2f}
-- **24h Low**: ${lowest_24h:,.2f}
-- **24h Volume**: {volume_24h:,.2f}
+**Current Status**: {symbol.upper()} is trading at ${latest_close:,.2f} in a {trend_direction} trend with {trend.get('strength', 'MODERATE').lower()} momentum.
 
-### Technical Analysis
-Based on the 1-hour K-line chart analysis:
+**Key Levels**: Support at ${support_resistance.get('support', latest_close * 0.95):,.2f}, Resistance at ${support_resistance.get('resistance', latest_close * 1.05):,.2f}
 
-**Trend Analysis**:
-- The market is currently in a {market_analysis.get('trend', {}).get('trend', 'NEUTRAL')} trend
-- Trend strength: {market_analysis.get('trend', {}).get('strength', 'MODERATE')}
-- RSI indicates {market_analysis.get('signals', {}).get('rsi_signal', 'NEUTRAL')} signal
-- MACD shows {market_analysis.get('signals', {}).get('macd_signal', 'NEUTRAL')} momentum
+**24h Forecast**: Price expected to {price_direction.lower()} with {confidence:.0%} confidence. Target range: ${target_low:,.2f} - ${target_high:,.2f}
 
-**Support & Resistance Levels**:
-- **Primary Support**: ${market_analysis.get('support_resistance', {}).get('support', latest_close * 0.95):,.2f}
-- **Primary Resistance**: ${market_analysis.get('support_resistance', {}).get('resistance', latest_close * 1.05):,.2f}
-- **Pivot Point**: ${market_analysis.get('support_resistance', {}).get('pivot', latest_close):,.2f}
+**Trading Recommendation**: {recommendation} - {strategy_description}
 
-**Volatility Analysis**:
-- Current volatility is {market_analysis.get('volatility', {}).get('risk_level', 'MEDIUM')}
-- ATR: {market_analysis.get('volatility', {}).get('atr', 0):,.2f}
-- Volatility ratio: {market_analysis.get('volatility', {}).get('volatility_ratio', 0):.4f}
-
-### 24-Hour Prediction
-Based on current market patterns and technical indicators:
-
-**Price Direction**: {market_analysis.get('trend', {}).get('trend', 'NEUTRAL')}
-- Expected to {'rise' if market_analysis.get('trend', {}).get('trend') == 'BULLISH' else 'fall' if market_analysis.get('trend', {}).get('trend') == 'BEARISH' else 'consolidate'}
-- Target range: ${latest_close * 0.98:,.2f} - ${latest_close * 1.02:,.2f}
-
-**Volatility Expectation**: {market_analysis.get('volatility', {}).get('risk_level', 'MEDIUM')}
-- Market expected to show {'high' if market_analysis.get('volatility', {}).get('risk_level') == 'HIGH' else 'low' if market_analysis.get('volatility', {}).get('risk_level') == 'LOW' else 'moderate'} volatility
-
-**Risk Assessment**: {market_analysis.get('volatility', {}).get('risk_level', 'MEDIUM')}
-- Suitable for {'aggressive' if market_analysis.get('volatility', {}).get('risk_level') == 'LOW' else 'conservative' if market_analysis.get('volatility', {}).get('risk_level') == 'HIGH' else 'balanced'} investment strategies
-
-### Investment Recommendation
-{market_analysis.get('signals', {}).get('recommendation', 'HOLD')} - Based on current technical indicators
-
-**Dual Investment Strategy**:
-{'Consider BUY_LOW products with strike prices below current market price' if market_analysis.get('signals', {}).get('recommendation') in ['BUY', 'STRONG_BUY'] else 'Consider SELL_HIGH products with strike prices above current market price' if market_analysis.get('signals', {}).get('recommendation') in ['SELL', 'STRONG_SELL'] else 'Wait for clearer market signals before entering new positions'}
-
----
-*Note: This analysis is based on technical indicators and should not be considered as financial advice.*
+**Risk Assessment**: {risk_level} volatility environment, suitable for {report_data['recommendation']['suitability'].lower()}
         """
         
         return {
             "symbol": symbol.upper(),
             "timestamp": pd.Timestamp.now().isoformat(),
             "has_kline_data": has_kline_data,
-            "report": report.strip(),
+            "report": summary.strip(),
+            "report_data": report_data,  # Structured data for frontend
             "market_data": market_analysis,
             "chart": chart_data  # Added chart data with base64 image
         }

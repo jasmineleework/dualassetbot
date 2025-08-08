@@ -321,45 +321,45 @@ class BinanceService:
             # Only apply corrections for testnet data
             if settings.binance_testnet and (high_24h > last_price * 1.5 or low_24h < last_price * 0.5):
                 logger.info(f"Testnet ticker data for {symbol} seems unrealistic, fetching hourly data")
+                
+                try:
+                    # Get last 24 hours of 1-hour klines for more accurate data
+                    hourly_klines = self.client.get_klines(
+                        symbol=symbol,
+                        interval='1h',
+                        limit=24
+                    )
                     
-                    try:
-                        # Get last 24 hours of 1-hour klines for more accurate data
-                        hourly_klines = self.client.get_klines(
-                            symbol=symbol,
-                            interval='1h',
-                            limit=24
-                        )
+                    if hourly_klines and len(hourly_klines) > 0:
+                        # Extract high and low from hourly data
+                        hourly_highs = [float(k[2]) for k in hourly_klines]
+                        hourly_lows = [float(k[3]) for k in hourly_klines]
                         
-                        if hourly_klines and len(hourly_klines) > 0:
-                            # Extract high and low from hourly data
-                            hourly_highs = [float(k[2]) for k in hourly_klines]
-                            hourly_lows = [float(k[3]) for k in hourly_klines]
+                        # Filter out obvious outliers (more than 50% from median)
+                        import statistics
+                        if len(hourly_highs) > 3:
+                            median_high = statistics.median(hourly_highs)
+                            median_low = statistics.median(hourly_lows)
                             
-                            # Filter out obvious outliers (more than 50% from median)
-                            import statistics
-                            if len(hourly_highs) > 3:
-                                median_high = statistics.median(hourly_highs)
-                                median_low = statistics.median(hourly_lows)
-                                
-                                # Filter outliers
-                                filtered_highs = [h for h in hourly_highs if h <= median_high * 1.5]
-                                filtered_lows = [l for l in hourly_lows if l >= median_low * 0.5]
-                                
-                                if filtered_highs and filtered_lows:
-                                    high_24h = max(filtered_highs)
-                                    low_24h = min(filtered_lows)
-                                    data_source = 'hourly_filtered'
-                                    logger.info(f"Using filtered hourly data for {symbol}: high={high_24h:.2f}, low={low_24h:.2f}")
-                            else:
-                                # Not enough data to filter, use raw hourly
-                                high_24h = max(hourly_highs)
-                                low_24h = min(hourly_lows)
-                                data_source = 'hourly'
-                        
-                    except Exception as hourly_error:
-                        logger.warning(f"Failed to get hourly data for {symbol}: {hourly_error}")
-                        # Fall back to calculated estimates
-                        data_source = 'calculated'
+                            # Filter outliers
+                            filtered_highs = [h for h in hourly_highs if h <= median_high * 1.5]
+                            filtered_lows = [l for l in hourly_lows if l >= median_low * 0.5]
+                            
+                            if filtered_highs and filtered_lows:
+                                high_24h = max(filtered_highs)
+                                low_24h = min(filtered_lows)
+                                data_source = 'hourly_filtered'
+                                logger.info(f"Using filtered hourly data for {symbol}: high={high_24h:.2f}, low={low_24h:.2f}")
+                        else:
+                            # Not enough data to filter, use raw hourly
+                            high_24h = max(hourly_highs)
+                            low_24h = min(hourly_lows)
+                            data_source = 'hourly'
+                    
+                except Exception as hourly_error:
+                    logger.warning(f"Failed to get hourly data for {symbol}: {hourly_error}")
+                    # Fall back to calculated estimates
+                    data_source = 'calculated'
                 
                 # Final sanity check - ensure values are within reasonable range
                 max_deviation = 0.20  # 20% max deviation from current price
