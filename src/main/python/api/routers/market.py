@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from services.binance_service import binance_service
 from core.dual_investment_engine import dual_investment_engine
 from loguru import logger
+import pandas as pd
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
@@ -178,3 +179,98 @@ async def get_klines(
     except Exception as e:
         logger.error(f"Failed to get klines for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get klines: {str(e)}")
+
+@router.get("/kline-analysis/{symbol}")
+async def get_kline_analysis(symbol: str):
+    """Generate professional K-line analysis report for a symbol"""
+    try:
+        # Get current market data
+        market_analysis = dual_investment_engine.analyze_market_conditions(symbol.upper())
+        
+        # Get K-line data for analysis
+        try:
+            df = binance_service.get_klines(symbol.upper(), "1h", 24)
+            has_kline_data = True
+            latest_close = df['Close'].iloc[-1] if not df.empty else market_analysis.get('current_price', 0)
+            highest_24h = df['High'].max() if not df.empty else 0
+            lowest_24h = df['Low'].min() if not df.empty else 0
+            volume_24h = df['Volume'].sum() if not df.empty else 0
+        except:
+            has_kline_data = False
+            latest_close = market_analysis.get('current_price', 0)
+            highest_24h = 0
+            lowest_24h = 0
+            volume_24h = 0
+        
+        # Generate analysis report (placeholder for LLM integration)
+        # In production, this would call an LLM API with K-line chart image
+        report = f"""
+# Professional K-Line Analysis Report
+## {symbol.upper()} - {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}
+
+### Market Overview
+- **Current Price**: ${latest_close:,.2f}
+- **24h High**: ${highest_24h:,.2f}
+- **24h Low**: ${lowest_24h:,.2f}
+- **24h Volume**: {volume_24h:,.2f}
+
+### Technical Analysis
+Based on the 1-hour K-line chart analysis:
+
+**Trend Analysis**:
+- The market is currently in a {market_analysis.get('trend', {}).get('trend', 'NEUTRAL')} trend
+- Trend strength: {market_analysis.get('trend', {}).get('strength', 'MODERATE')}
+- RSI indicates {market_analysis.get('signals', {}).get('rsi_signal', 'NEUTRAL')} signal
+- MACD shows {market_analysis.get('signals', {}).get('macd_signal', 'NEUTRAL')} momentum
+
+**Support & Resistance Levels**:
+- **Primary Support**: ${market_analysis.get('support_resistance', {}).get('support', latest_close * 0.95):,.2f}
+- **Primary Resistance**: ${market_analysis.get('support_resistance', {}).get('resistance', latest_close * 1.05):,.2f}
+- **Pivot Point**: ${market_analysis.get('support_resistance', {}).get('pivot', latest_close):,.2f}
+
+**Volatility Analysis**:
+- Current volatility is {market_analysis.get('volatility', {}).get('risk_level', 'MEDIUM')}
+- ATR: {market_analysis.get('volatility', {}).get('atr', 0):,.2f}
+- Volatility ratio: {market_analysis.get('volatility', {}).get('volatility_ratio', 0):.4f}
+
+### 24-Hour Prediction
+Based on current market patterns and technical indicators:
+
+**Price Direction**: {market_analysis.get('trend', {}).get('trend', 'NEUTRAL')}
+- Expected to {'rise' if market_analysis.get('trend', {}).get('trend') == 'BULLISH' else 'fall' if market_analysis.get('trend', {}).get('trend') == 'BEARISH' else 'consolidate'}
+- Target range: ${latest_close * 0.98:,.2f} - ${latest_close * 1.02:,.2f}
+
+**Volatility Expectation**: {market_analysis.get('volatility', {}).get('risk_level', 'MEDIUM')}
+- Market expected to show {'high' if market_analysis.get('volatility', {}).get('risk_level') == 'HIGH' else 'low' if market_analysis.get('volatility', {}).get('risk_level') == 'LOW' else 'moderate'} volatility
+
+**Risk Assessment**: {market_analysis.get('volatility', {}).get('risk_level', 'MEDIUM')}
+- Suitable for {'aggressive' if market_analysis.get('volatility', {}).get('risk_level') == 'LOW' else 'conservative' if market_analysis.get('volatility', {}).get('risk_level') == 'HIGH' else 'balanced'} investment strategies
+
+### Investment Recommendation
+{market_analysis.get('signals', {}).get('recommendation', 'HOLD')} - Based on current technical indicators
+
+**Dual Investment Strategy**:
+{'Consider BUY_LOW products with strike prices below current market price' if market_analysis.get('signals', {}).get('recommendation') in ['BUY', 'STRONG_BUY'] else 'Consider SELL_HIGH products with strike prices above current market price' if market_analysis.get('signals', {}).get('recommendation') in ['SELL', 'STRONG_SELL'] else 'Wait for clearer market signals before entering new positions'}
+
+---
+*Note: This analysis is based on technical indicators and should not be considered as financial advice.*
+        """
+        
+        return {
+            "symbol": symbol.upper(),
+            "timestamp": pd.Timestamp.now().isoformat(),
+            "has_kline_data": has_kline_data,
+            "report": report.strip(),
+            "market_data": market_analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to generate K-line analysis for {symbol}: {e}")
+        # Return a basic error report
+        return {
+            "symbol": symbol.upper(),
+            "timestamp": pd.Timestamp.now().isoformat(),
+            "has_kline_data": False,
+            "report": f"Unable to generate complete analysis due to data availability. Error: {str(e)}",
+            "market_data": {}
+        }

@@ -189,9 +189,22 @@ const Dashboard: React.FC = () => {
     setGeneratingReport(true);
     setAnalysisModalVisible(true);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for analysis
+    
     try {
-      // This will be enhanced with actual K-line analysis in Phase 3
-      const mockReport = `
+      const response = await fetch(
+        `http://localhost:8081/api/v1/market/kline-analysis/${selectedPair}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAnalysisReport(data.report);
+      } else {
+        // Fallback to basic report if API fails
+        const fallbackReport = `
 ## ${currentPairInfo?.label} Market Analysis Report
 
 ### Current Market Status
@@ -213,11 +226,16 @@ const Dashboard: React.FC = () => {
 
 ### Investment Recommendation
 Based on current market conditions, ${marketAnalysis?.signals?.recommendation === 'BUY' ? 'consider investing in dual investment products with strike prices below current market price' : 'exercise caution and wait for better entry points'}.
-      `;
-      
-      setAnalysisReport(mockReport);
-    } catch (err) {
-      setAnalysisReport('Failed to generate analysis report');
+        `;
+        setAnalysisReport(fallbackReport);
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setAnalysisReport('Analysis request timeout. Please try again.');
+      } else {
+        setAnalysisReport('Failed to generate analysis report. Please try again later.');
+      }
     } finally {
       setGeneratingReport(false);
     }
@@ -549,8 +567,112 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
         </Row>
       )}
 
+      {/* Enhanced Market Intelligence & Predictions Card */}
       {marketAnalysis && (
         <>
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col span={24}>
+              <Card 
+                title="Market Intelligence & Predictions" 
+                extra={
+                  <Space>
+                    <Badge status="processing" text="Real-time" />
+                    <Text type="secondary">Last updated: {new Date().toLocaleTimeString()}</Text>
+                  </Space>
+                }
+              >
+                <Row gutter={16}>
+                  <Col span={4}>
+                    <Statistic
+                      title="Current Price"
+                      value={displayPrice || 0}
+                      prefix="$"
+                      precision={2}
+                      valueStyle={{ fontSize: 20 }}
+                    />
+                  </Col>
+                  <Col span={4}>
+                    <Statistic
+                      title="24h Price Prediction"
+                      value={marketAnalysis.price_prediction_24h?.direction || 'NEUTRAL'}
+                      prefix={marketAnalysis.price_prediction_24h?.direction === 'UP' ? 
+                        <ArrowUpOutlined style={{ color: '#52c41a' }} /> : 
+                        marketAnalysis.price_prediction_24h?.direction === 'DOWN' ?
+                        <ArrowDownOutlined style={{ color: '#f5222d' }} /> :
+                        <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                      }
+                      valueStyle={{ 
+                        fontSize: 16,
+                        color: marketAnalysis.price_prediction_24h?.direction === 'UP' ? '#52c41a' : 
+                               marketAnalysis.price_prediction_24h?.direction === 'DOWN' ? '#f5222d' : '#1890ff'
+                      }}
+                    />
+                    {marketAnalysis.price_prediction_24h?.confidence && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Confidence: {(marketAnalysis.price_prediction_24h.confidence * 100).toFixed(0)}%
+                      </Text>
+                    )}
+                  </Col>
+                  <Col span={4}>
+                    <Statistic
+                      title="24h Volatility Forecast"
+                      value={marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level}
+                      valueStyle={{ 
+                        fontSize: 16,
+                        color: (marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'HIGH' ? '#f5222d' : 
+                               (marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'LOW' ? '#52c41a' : '#faad14'
+                      }}
+                    />
+                    {marketAnalysis.volatility_prediction?.value && (
+                      <Progress 
+                        percent={Math.min(marketAnalysis.volatility_prediction.value * 100, 100)} 
+                        size="small"
+                        strokeColor={(marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'HIGH' ? '#f5222d' : 
+                                    (marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'LOW' ? '#52c41a' : '#faad14'}
+                        showInfo={false}
+                      />
+                    )}
+                  </Col>
+                  <Col span={4}>
+                    <Statistic
+                      title="Support Level"
+                      value={marketAnalysis.support_resistance?.support || (displayPrice ? displayPrice * 0.95 : 0)}
+                      prefix="$"
+                      precision={2}
+                      valueStyle={{ fontSize: 16, color: '#52c41a' }}
+                    />
+                  </Col>
+                  <Col span={4}>
+                    <Statistic
+                      title="Resistance Level"
+                      value={marketAnalysis.support_resistance?.resistance || (displayPrice ? displayPrice * 1.05 : 0)}
+                      prefix="$"
+                      precision={2}
+                      valueStyle={{ fontSize: 16, color: '#f5222d' }}
+                    />
+                  </Col>
+                  <Col span={4}>
+                    <Statistic
+                      title="24h Risk Level"
+                      value={marketAnalysis.risk_level || 'MEDIUM'}
+                      prefix={marketAnalysis.risk_level === 'HIGH' ? 
+                        <ExclamationCircleOutlined style={{ color: '#f5222d' }} /> : 
+                        marketAnalysis.risk_level === 'LOW' ?
+                        <InfoCircleOutlined style={{ color: '#52c41a' }} /> :
+                        <InfoCircleOutlined style={{ color: '#faad14' }} />
+                      }
+                      valueStyle={{ 
+                        fontSize: 16,
+                        color: marketAnalysis.risk_level === 'HIGH' ? '#f5222d' : 
+                               marketAnalysis.risk_level === 'LOW' ? '#52c41a' : '#faad14'
+                      }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+          </Row>
+          
           <Row gutter={16} style={{ marginBottom: 24 }}>
             <Col span={12}>
               <Card title="Market Analysis">
