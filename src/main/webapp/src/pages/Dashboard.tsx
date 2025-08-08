@@ -190,7 +190,7 @@ const Dashboard: React.FC = () => {
   };
   
   // Generate K-line analysis report
-  const generateAnalysisReport = async () => {
+  const generateAnalysisReport = async (forceRefresh: boolean = false) => {
     setGeneratingReport(true);
     setAnalysisModalVisible(true);
     
@@ -198,10 +198,12 @@ const Dashboard: React.FC = () => {
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for analysis
     
     try {
-      const response = await fetch(
-        `http://localhost:8081/api/v1/market/kline-analysis/${selectedPair}`,
-        { signal: controller.signal }
-      );
+      const url = new URL(`http://localhost:8081/api/v1/market/kline-analysis/${selectedPair}`);
+      if (forceRefresh) {
+        url.searchParams.append('force_refresh', 'true');
+      }
+      
+      const response = await fetch(url.toString(), { signal: controller.signal });
       clearTimeout(timeoutId);
       
       if (response.ok) {
@@ -745,8 +747,8 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
           <Button key="close" onClick={() => setAnalysisModalVisible(false)}>
             Close
           </Button>,
-          <Button key="regenerate" type="primary" onClick={generateAnalysisReport} loading={generatingReport}>
-            Regenerate Report
+          <Button key="regenerate" type="primary" onClick={() => generateAnalysisReport(true)} loading={generatingReport}>
+            Regenerate Report (Force Refresh)
           </Button>
         ]}
       >
@@ -962,6 +964,40 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
             {aiAnalysis && aiAnalysis.enabled && (
               <Tabs.TabPane tab="AI Analysis" key="ai">
                 <div>
+                  {/* Cache Status */}
+                  {aiAnalysis.from_cache !== undefined && (
+                    <Alert
+                      message={aiAnalysis.from_cache ? "Cached Analysis" : "Fresh Analysis"}
+                      description={
+                        <div>
+                          {aiAnalysis.from_cache ? (
+                            <>
+                              <Text>This analysis was retrieved from cache. </Text>
+                              <Text type="secondary">
+                                Generated at: {new Date(aiAnalysis.cache_timestamp || aiAnalysis.timestamp).toLocaleString()}
+                              </Text>
+                              <br />
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                AI analyses are cached for 1 hour per symbol. Click "Regenerate Report" to force a fresh analysis.
+                              </Text>
+                            </>
+                          ) : (
+                            <>
+                              <Text>Fresh AI analysis generated. </Text>
+                              <Text type="secondary">
+                                Generated at: {new Date(aiAnalysis.generated_at || aiAnalysis.timestamp).toLocaleString()}
+                              </Text>
+                            </>
+                          )}
+                        </div>
+                      }
+                      type={aiAnalysis.from_cache ? "info" : "success"}
+                      showIcon
+                      closable
+                      style={{ marginBottom: 16 }}
+                    />
+                  )}
+                  
                   {/* AI Confidence Score */}
                   {aiAnalysis.confidence_score && (
                     <Card size="small" title="AI Confidence" style={{ marginBottom: 16 }}>

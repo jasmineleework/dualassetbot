@@ -182,7 +182,12 @@ async def get_klines(
         raise HTTPException(status_code=500, detail=f"Failed to get klines: {str(e)}")
 
 @router.get("/kline-analysis/{symbol}")
-async def get_kline_analysis(symbol: str, include_chart: bool = True, include_ai: bool = True):
+async def get_kline_analysis(
+    symbol: str, 
+    include_chart: bool = True, 
+    include_ai: bool = True,
+    force_refresh: bool = False
+):
     """Generate professional K-line analysis report with chart for a symbol"""
     try:
         # Get current market data
@@ -378,12 +383,13 @@ async def get_kline_analysis(symbol: str, include_chart: bool = True, include_ai
         ai_analysis = None
         if include_ai:
             try:
-                logger.info(f"Generating AI analysis for {symbol}")
+                logger.info(f"Generating AI analysis for {symbol} (force_refresh={force_refresh})")
                 ai_analysis = await ai_analysis_service.analyze_market_with_ai(
                     symbol=symbol.upper(),
                     market_data=market_analysis,
                     kline_data={'has_data': has_kline_data} if has_kline_data else None,
-                    include_oi=False  # OI data not yet available
+                    include_oi=False,  # OI data not yet available
+                    force_refresh=force_refresh
                 )
                 
                 if ai_analysis.get('enabled') and not ai_analysis.get('error'):

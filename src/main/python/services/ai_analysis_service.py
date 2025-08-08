@@ -5,11 +5,12 @@ Integrates with Anthropic Claude for intelligent market insights
 import os
 import json
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import anthropic
 from loguru import logger
 from core.config import settings
 import asyncio
+from services.cache_service import cache_service
 
 class AIAnalysisService:
     """Service for AI-powered market analysis using Claude"""
@@ -20,20 +21,31 @@ class AIAnalysisService:
         self.model = os.getenv('CLAUDE_MODEL', 'claude-3-opus-20240229')
         self.max_tokens = int(os.getenv('CLAUDE_MAX_TOKENS', '1500'))
         self.temperature = float(os.getenv('CLAUDE_TEMPERATURE', '0.7'))
+        self.cache_ttl = int(os.getenv('AI_CACHE_TTL', '3600'))  # 1 hour default
+        self.cache_enabled = os.getenv('AI_CACHE_ENABLED', 'true').lower() == 'true'
         self.enabled = bool(self.api_key)
         
         if self.enabled:
             self.client = anthropic.Anthropic(api_key=self.api_key)
             logger.info(f"AI Analysis Service initialized with Claude model: {self.model}")
+            logger.info(f"Cache enabled: {self.cache_enabled}, TTL: {self.cache_ttl}s")
         else:
             logger.warning("AI Analysis Service disabled - no Anthropic API key configured")
+    
+    def _get_cache_key(self, symbol: str) -> str:
+        """Generate cache key for AI analysis"""
+        # Cache key includes symbol and current hour
+        now = datetime.now()
+        hour_key = now.strftime('%Y%m%d_%H')
+        return f"ai_analysis:{symbol}:{hour_key}"
     
     async def analyze_market_with_ai(
         self, 
         symbol: str, 
         market_data: Dict[str, Any],
         kline_data: Optional[Dict[str, Any]] = None,
-        include_oi: bool = False
+        include_oi: bool = False,
+        force_refresh: bool = False
     ) -> Dict[str, Any]:
         """
         Generate AI-powered market analysis using Claude
@@ -43,6 +55,7 @@ class AIAnalysisService:
             market_data: Current market data and indicators
             kline_data: Historical K-line data
             include_oi: Whether to include Open Interest analysis
+            force_refresh: Force regenerate analysis even if cached
             
         Returns:
             AI-generated analysis and insights
@@ -52,6 +65,19 @@ class AIAnalysisService:
                 'enabled': False,
                 'message': 'AI analysis not available - API key not configured'
             }
+        
+        # Check cache if enabled and not forcing refresh
+        cache_key = self._get_cache_key(symbol)
+        if self.cache_enabled and not force_refresh:
+            cached_analysis = await cache_service.get(cache_key)
+            if cached_analysis:
+                logger.info(f"AI analysis cache hit for {symbol}")
+                # Add cache metadata
+                cached_analysis['from_cache'] = True
+                cached_analysis['cache_timestamp'] = cached_analysis.get('timestamp', datetime.now().isoformat())
+                return cached_analysis
+        
+        logger.info(f"Generating new AI analysis for {symbol} (force_refresh={force_refresh})")
         
         try:
             # Prepare context for AI
@@ -71,14 +97,26 @@ class AIAnalysisService:
                     analyses[aspect] = f"Analysis unavailable: {str(e)}"
             
             # Combine analyses into comprehensive report
-            return self._format_ai_analysis(analyses, market_data)
+            result = self._format_ai_analysis(analyses, market_data)
+            
+            # Cache the result if caching is enabled
+            if self.cache_enabled and result.get('enabled') and not result.get('error'):
+                await cache_service.set(cache_key, result, ttl=self.cache_ttl)
+                logger.info(f"AI analysis cached for {symbol} with TTL={self.cache_ttl}s")
+            
+            # Add cache metadata
+            result['from_cache'] = False
+            result['generated_at'] = datetime.now().isoformat()
+            
+            return result
             
         except Exception as e:
             logger.error(f"AI analysis failed for {symbol}: {e}")
             return {
                 'enabled': True,
                 'error': str(e),
-                'message': 'AI analysis temporarily unavailable'
+                'message': 'AI analysis temporarily unavailable',
+                'from_cache': False
             }
     
     def _prepare_market_context(
