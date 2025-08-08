@@ -250,14 +250,62 @@ class BinanceService:
             
             ticker = self.client.get_ticker(symbol=symbol)
             
+            # Parse values
+            last_price = float(ticker['lastPrice'])
+            price_change = float(ticker['priceChange'])
+            price_change_percent = float(ticker['priceChangePercent'])
+            volume = float(ticker['volume'])
+            
+            # Get real 24h high/low from 1-day kline data
+            try:
+                # Fetch 1-day kline data (last 2 days to ensure we have 24h data)
+                klines = self.client.get_klines(
+                    symbol=symbol,
+                    interval='1d',
+                    limit=2
+                )
+                
+                if klines and len(klines) > 0:
+                    # Use the most recent complete day candle
+                    # kline format: [timestamp, open, high, low, close, volume, ...]
+                    latest_kline = klines[-1] if len(klines) == 1 else klines[-2]
+                    high_24h = float(latest_kline[2])  # high
+                    low_24h = float(latest_kline[3])   # low
+                    
+                    # If today's incomplete candle has higher high or lower low, use it
+                    if len(klines) > 1:
+                        today_kline = klines[-1]
+                        today_high = float(today_kline[2])
+                        today_low = float(today_kline[3])
+                        high_24h = max(high_24h, today_high)
+                        low_24h = min(low_24h, today_low)
+                else:
+                    # Fallback to ticker data if kline fetch fails
+                    high_24h = float(ticker['highPrice'])
+                    low_24h = float(ticker['lowPrice'])
+                    
+            except Exception as kline_error:
+                logger.warning(f"Failed to get kline data for {symbol}, using ticker data: {kline_error}")
+                # Fallback to ticker data
+                high_24h = float(ticker['highPrice'])
+                low_24h = float(ticker['lowPrice'])
+            
+            # Sanity check for testnet data - only apply minimal corrections
+            if settings.binance_testnet:
+                # Only fix if values are completely unrealistic (>100% difference)
+                if high_24h > last_price * 2:
+                    high_24h = last_price * 1.1  # 10% above current
+                if low_24h < last_price * 0.5:
+                    low_24h = last_price * 0.9  # 10% below current
+            
             return {
                 'symbol': ticker['symbol'],
-                'price_change': float(ticker['priceChange']),
-                'price_change_percent': float(ticker['priceChangePercent']),
-                'last_price': float(ticker['lastPrice']),
-                'volume': float(ticker['volume']),
-                'high_24h': float(ticker['highPrice']),
-                'low_24h': float(ticker['lowPrice'])
+                'price_change': price_change,
+                'price_change_percent': price_change_percent,
+                'last_price': last_price,
+                'volume': volume,
+                'high_24h': high_24h,
+                'low_24h': low_24h
             }
             
         except Exception as e:
