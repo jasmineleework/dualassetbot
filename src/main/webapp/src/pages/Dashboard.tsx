@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs } from 'antd';
 import { 
   SyncOutlined,
   ArrowUpOutlined,
@@ -72,6 +72,8 @@ const Dashboard: React.FC = () => {
   const [analysisReport, setAnalysisReport] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [analysisData, setAnalysisData] = useState<any>(null);
+  const [chartImage, setChartImage] = useState<string | null>(null);
+  const [chartSource, setChartSource] = useState<string | null>(null);
   
   // WebSocket hooks for real-time data
   const { prices: realtimePrices } = usePriceUpdates([selectedPair]);
@@ -204,6 +206,15 @@ const Dashboard: React.FC = () => {
         const data = await response.json();
         setAnalysisReport(data.report);
         setAnalysisData(data.market_data);
+        
+        // Handle chart data if available
+        if (data.chart && data.chart.image_base64) {
+          setChartImage(data.chart.image_base64);
+          setChartSource(data.chart.source);
+        } else {
+          setChartImage(null);
+          setChartSource(null);
+        }
       } else {
         // Fallback to basic report if API fails
         const fallbackReport = `
@@ -724,9 +735,33 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
             <p style={{ marginTop: 16 }}>Generating professional analysis report...</p>
           </div>
         ) : (
-          <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-            {analysisReport}
-          </div>
+          <Tabs defaultActiveKey="chart">
+            <Tabs.TabPane tab="K-Line Chart" key="chart">
+              {chartImage ? (
+                <div style={{ textAlign: 'center' }}>
+                  <img 
+                    src={`data:image/png;base64,${chartImage}`} 
+                    alt="K-Line Chart" 
+                    style={{ maxWidth: '100%', height: 'auto' }}
+                  />
+                  <div style={{ marginTop: 8, color: '#888', fontSize: 12 }}>
+                    Source: {chartSource === 'binance_futures' ? 'Binance Futures Testnet' : 
+                             chartSource === 'generated' ? 'Generated Chart' : chartSource}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+                  <p>Chart not available</p>
+                  <p style={{ fontSize: 12 }}>Unable to generate chart for this symbol</p>
+                </div>
+              )}
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="Technical Analysis" key="analysis">
+              <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                {analysisReport}
+              </div>
+            </Tabs.TabPane>
+          </Tabs>
         )}
       </Modal>
     </div>

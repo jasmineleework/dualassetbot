@@ -181,8 +181,8 @@ async def get_klines(
         raise HTTPException(status_code=500, detail=f"Failed to get klines: {str(e)}")
 
 @router.get("/kline-analysis/{symbol}")
-async def get_kline_analysis(symbol: str):
-    """Generate professional K-line analysis report for a symbol"""
+async def get_kline_analysis(symbol: str, include_chart: bool = True):
+    """Generate professional K-line analysis report with chart for a symbol"""
     try:
         # Get current market data
         market_analysis = dual_investment_engine.analyze_market_conditions(symbol.upper())
@@ -202,8 +202,40 @@ async def get_kline_analysis(symbol: str):
             lowest_24h = 0
             volume_24h = 0
         
-        # Generate analysis report (placeholder for LLM integration)
-        # In production, this would call an LLM API with K-line chart image
+        # Generate chart if requested
+        chart_data = None
+        if include_chart:
+            try:
+                # Try screenshot service first (Binance Futures)
+                from services.screenshot_service import screenshot_service
+                chart_result = screenshot_service.capture_with_fallback(symbol.upper())
+                
+                if chart_result['success']:
+                    chart_data = {
+                        'image_base64': chart_result['image_base64'],
+                        'source': chart_result['source'],
+                        'timestamp': pd.Timestamp.now().isoformat()
+                    }
+                    logger.info(f"Chart generated from {chart_result['source']} for {symbol}")
+                else:
+                    # If screenshot fails, try direct chart generation
+                    from services.chart_generator import chart_generator
+                    image_base64 = chart_generator.generate_advanced_chart(
+                        symbol.upper(), 
+                        interval='1h',
+                        limit=100,
+                        indicators=['RSI', 'MACD']
+                    )
+                    if image_base64:
+                        chart_data = {
+                            'image_base64': image_base64,
+                            'source': 'generated',
+                            'timestamp': pd.Timestamp.now().isoformat()
+                        }
+            except Exception as chart_error:
+                logger.warning(f"Could not generate chart for {symbol}: {chart_error}")
+        
+        # Generate analysis report (enhanced with chart reference if available)
         report = f"""
 # Professional K-Line Analysis Report
 ## {symbol.upper()} - {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}
@@ -261,7 +293,8 @@ Based on current market patterns and technical indicators:
             "timestamp": pd.Timestamp.now().isoformat(),
             "has_kline_data": has_kline_data,
             "report": report.strip(),
-            "market_data": market_analysis
+            "market_data": market_analysis,
+            "chart": chart_data  # Added chart data with base64 image
         }
         
     except Exception as e:

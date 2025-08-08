@@ -30,6 +30,9 @@ pandas-ta==0.3.14b0  # Alternative technical analysis library
 matplotlib==3.8.2
 seaborn==0.13.0
 plotly==5.18.0
+mplfinance==0.12.10b0
+Pillow==10.1.0
+selenium==4.15.2
 
 # API & Validation
 httpx==0.25.2
