@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs, message } from 'antd';
 import { 
   SyncOutlined,
   ArrowUpOutlined,
@@ -439,6 +439,25 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
   return (
     <div style={{ padding: 24 }}>
       <ConnectionIndicator />
+      {/* Environment Indicator */}
+      <div style={{ marginBottom: 16, padding: '8px 16px', background: '#f0f2f5', borderRadius: 8 }}>
+        <Space>
+          <Tag color={botStatus?.binance_connected ? 'green' : 'red'}>
+            {botStatus?.binance_connected ? 'Connected' : 'Disconnected'}
+          </Tag>
+          <Tag color="blue">
+            {process.env.REACT_APP_DEMO_MODE === 'true' ? 'Demo Mode' : 'Live Mode'}
+          </Tag>
+          <Tag color="orange">
+            Production Data
+          </Tag>
+          {process.env.REACT_APP_DEMO_MODE === 'true' && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Trading simulated - No real money involved
+            </Text>
+          )}
+        </Space>
+      </div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
           <Title level={2} style={{ margin: 0 }}>Market Dashboard</Title>

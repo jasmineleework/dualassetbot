@@ -9,6 +9,7 @@ from core.config import settings
 import pandas as pd
 from datetime import datetime, timedelta
 import time
+from .public_market_service import public_market_service
 
 class BinanceService:
     """Service for interacting with Binance API"""
@@ -16,24 +17,44 @@ class BinanceService:
     def __init__(self):
         """Initialize Binance client"""
         self.client = None
+        self.public_client = None  # For public market data (no auth needed)
         self._initialized = False
         self._testnet_adapter = None
+        self.demo_mode = settings.demo_mode
+        self.max_trade_amount = settings.max_trade_amount
+        self.trading_enabled = settings.trading_enabled
+        self.use_public_data_only = settings.use_public_data_only
     
     def _initialize_client(self):
         """Initialize Binance API client"""
         try:
-            if not settings.binance_api_key or not settings.binance_api_secret:
-                logger.warning("Binance API credentials not configured")
-                return
+            # Initialize public client for market data (no auth needed)
+            self.public_client = Client("", "")  # Empty keys for public endpoints
             
-            self.client = Client(
-                api_key=settings.binance_api_key,
-                api_secret=settings.binance_api_secret
-            )
+            # Check if we're using public data only mode
+            if self.use_public_data_only:
+                logger.info("Using public data only mode - no authentication required")
+                self.client = self.public_client
+            elif not settings.binance_api_key or not settings.binance_api_secret:
+                logger.warning("Binance API credentials not configured - using public data only")
+                self.client = self.public_client
+                self.use_public_data_only = True
+            else:
+                # Initialize authenticated client
+                self.client = Client(
+                    api_key=settings.binance_api_key,
+                    api_secret=settings.binance_api_secret
+                )
             
-            # Set testnet if enabled
+            # Set API URL based on environment
             if settings.binance_testnet:
                 self.client.API_URL = 'https://testnet.binance.vision/api'
+                if self.public_client:
+                    self.public_client.API_URL = 'https://testnet.binance.vision/api'
+                logger.info("Using Binance TESTNET environment")
+            else:
+                # Production environment (default)
+                logger.info(f"Using Binance PRODUCTION environment (Demo Mode: {self.demo_mode})")
             
             # Sync time with server to avoid timestamp errors
             try:
@@ -97,8 +118,16 @@ class BinanceService:
     def get_symbol_price(self, symbol: str) -> float:
         """Get current price for a symbol"""
         try:
-            self.ensure_initialized()
+            # Use public API for production market data
+            if not settings.binance_testnet:
+                try:
+                    data = public_market_service.get_symbol_price(symbol)
+                    return data['price']
+                except Exception as e:
+                    logger.warning(f"Public API failed, falling back to authenticated client: {e}")
             
+            # Fallback to authenticated client
+            self.ensure_initialized()
             ticker = self.client.get_symbol_ticker(symbol=symbol)
             return float(ticker['price'])
             
@@ -126,8 +155,15 @@ class BinanceService:
             DataFrame with OHLCV data
         """
         try:
-            self.ensure_initialized()
+            # Use public API for production market data
+            if not settings.binance_testnet:
+                try:
+                    return public_market_service.get_klines(symbol, interval, limit)
+                except Exception as e:
+                    logger.warning(f"Public API failed, falling back to authenticated client: {e}")
             
+            # Fallback to authenticated client
+            self.ensure_initialized()
             klines = self.client.get_klines(
                 symbol=symbol,
                 interval=interval,
@@ -246,8 +282,15 @@ class BinanceService:
     def get_24hr_ticker_stats(self, symbol: str) -> Dict[str, Any]:
         """Get 24hr ticker statistics with enhanced data validation"""
         try:
-            self.ensure_initialized()
+            # Use public API for production market data
+            if not settings.binance_testnet:
+                try:
+                    return public_market_service.get_24hr_ticker_stats(symbol)
+                except Exception as e:
+                    logger.warning(f"Public API failed, falling back to authenticated client: {e}")
             
+            # Fallback to authenticated client
+            self.ensure_initialized()
             ticker = self.client.get_ticker(symbol=symbol)
             
             # Parse values
@@ -261,11 +304,9 @@ class BinanceService:
             low_24h = float(ticker['lowPrice'])
             data_source = 'ticker'
             
-            # For testnet, apply smart data correction
-            if settings.binance_testnet:
-                # Check if ticker data is unrealistic (more than 50% deviation)
-                if high_24h > last_price * 1.5 or low_24h < last_price * 0.5:
-                    logger.info(f"Ticker data for {symbol} seems unrealistic, fetching hourly data")
+            # Only apply corrections for testnet data
+            if settings.binance_testnet and (high_24h > last_price * 1.5 or low_24h < last_price * 0.5):
+                logger.info(f"Testnet ticker data for {symbol} seems unrealistic, fetching hourly data")
                     
                     try:
                         # Get last 24 hours of 1-hour klines for more accurate data
@@ -369,13 +410,28 @@ class BinanceService:
 
     def subscribe_dual_investment(self, product_id: str, amount: float) -> Dict[str, Any]:
         """
-        Subscribe to a dual investment product (simulated for testnet)
+        Subscribe to a dual investment product with safety checks
         """
         try:
             self.ensure_initialized()
             
-            # In testnet mode, simulate the subscription
-            if settings.binance_testnet:
+            # Safety checks
+            if not self.trading_enabled:
+                return {
+                    'success': False,
+                    'error': 'Trading is disabled',
+                    'message': 'Enable trading in settings to execute trades'
+                }
+            
+            if amount > self.max_trade_amount:
+                return {
+                    'success': False,
+                    'error': f'Amount exceeds maximum limit of {self.max_trade_amount} USDT',
+                    'message': f'Please reduce amount to {self.max_trade_amount} USDT or less'
+                }
+            
+            # Demo mode - simulate the subscription
+            if self.demo_mode:
                 # Generate simulated order ID
                 import time
                 import random
@@ -393,12 +449,29 @@ class BinanceService:
                     'message': 'Dual investment subscription successful (simulated)'
                 }
                 
-                logger.info(f"Simulated dual investment subscription: {product_id} for ${amount}")
+                logger.info(f"[DEMO MODE] Simulated dual investment subscription: {product_id} for ${amount}")
+                return result
+            
+            # Production mode with testnet
+            elif settings.binance_testnet:
+                # Testnet simulation
+                order_id = f"TEST_{int(time.time())}{random.randint(1000, 9999)}"
+                result = {
+                    'success': True,
+                    'order_id': order_id,
+                    'product_id': product_id,
+                    'amount': amount,
+                    'execution_price': self.get_symbol_price(product_id.split('-')[0] + 'USDT'),
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'status': 'PENDING',
+                    'message': 'Testnet dual investment subscription successful'
+                }
+                logger.info(f"[TESTNET] Dual investment subscription: {product_id} for ${amount}")
                 return result
             else:
-                # For production, would implement actual Binance API call
-                # Currently returns simulated result
-                logger.warning("Production dual investment subscription not implemented")
+                # Production mode - real trading
+                # TODO: Implement actual Binance Dual Investment API
+                logger.warning("Production dual investment API integration pending")
                 return {
                     'success': False,
                     'error': 'Production dual investment API not implemented',

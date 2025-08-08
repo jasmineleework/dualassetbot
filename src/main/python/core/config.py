@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     binance_api_secret: Optional[str] = None
     binance_testnet: bool = False
     
+    # Production Safety Settings
+    demo_mode: bool = True  # Simulate trades by default
+    max_trade_amount: float = 10.0  # Maximum trade amount in USDT
+    trading_enabled: bool = False  # Master switch for trading
+    use_public_data_only: bool = False  # Use only public API endpoints
+    
     # Trading Configuration
     default_investment_amount: float = 100.0  # USDT
     max_single_investment_ratio: float = 0.2  # 20% of total capital
