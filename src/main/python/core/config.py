@@ -28,9 +28,19 @@ class Settings(BaseSettings):
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     # Binance API
-    binance_api_key: Optional[str] = None
-    binance_api_secret: Optional[str] = None
-    binance_testnet: bool = False
+    # Separate keys for testnet and production
+    binance_testnet_api_key: Optional[str] = None
+    binance_testnet_api_secret: Optional[str] = None
+    binance_production_api_key: Optional[str] = None
+    binance_production_api_secret: Optional[str] = None
+    
+    # Environment selection
+    binance_use_testnet: bool = False  # True for testnet, False for production
+    
+    # Legacy support (will be deprecated)
+    binance_api_key: Optional[str] = None  # Fallback for old config
+    binance_api_secret: Optional[str] = None  # Fallback for old config
+    binance_testnet: bool = False  # Legacy field
     
     # Production Safety Settings
     demo_mode: bool = True  # Simulate trades by default

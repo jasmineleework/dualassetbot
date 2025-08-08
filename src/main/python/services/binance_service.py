@@ -31,30 +31,41 @@ class BinanceService:
             # Initialize public client for market data (no auth needed)
             self.public_client = Client("", "")  # Empty keys for public endpoints
             
+            # Determine which environment to use
+            use_testnet = settings.binance_use_testnet or settings.binance_testnet  # Support both old and new config
+            
+            # Select appropriate API keys based on environment
+            if use_testnet:
+                api_key = settings.binance_testnet_api_key or settings.binance_api_key
+                api_secret = settings.binance_testnet_api_secret or settings.binance_api_secret
+                logger.info("Using TESTNET environment")
+            else:
+                api_key = settings.binance_production_api_key or settings.binance_api_key
+                api_secret = settings.binance_production_api_secret or settings.binance_api_secret
+                logger.info(f"Using PRODUCTION environment (Demo Mode: {self.demo_mode})")
+            
             # Check if we're using public data only mode
             if self.use_public_data_only:
                 logger.info("Using public data only mode - no authentication required")
                 self.client = self.public_client
-            elif not settings.binance_api_key or not settings.binance_api_secret:
-                logger.warning("Binance API credentials not configured - using public data only")
+            elif not api_key or not api_secret:
+                logger.warning(f"API credentials not configured for {'testnet' if use_testnet else 'production'} - using public data only")
                 self.client = self.public_client
                 self.use_public_data_only = True
             else:
                 # Initialize authenticated client
                 self.client = Client(
-                    api_key=settings.binance_api_key,
-                    api_secret=settings.binance_api_secret
+                    api_key=api_key,
+                    api_secret=api_secret
                 )
+                logger.info(f"Authenticated client initialized for {'testnet' if use_testnet else 'production'}")
             
             # Set API URL based on environment
-            if settings.binance_testnet:
+            if use_testnet:
                 self.client.API_URL = 'https://testnet.binance.vision/api'
                 if self.public_client:
                     self.public_client.API_URL = 'https://testnet.binance.vision/api'
                 logger.info("Using Binance TESTNET environment")
-            else:
-                # Production environment (default)
-                logger.info(f"Using Binance PRODUCTION environment (Demo Mode: {self.demo_mode})")
             
             # Sync time with server to avoid timestamp errors
             try:
@@ -119,7 +130,8 @@ class BinanceService:
         """Get current price for a symbol"""
         try:
             # Use public API for production market data
-            if not settings.binance_testnet:
+            use_testnet = settings.binance_use_testnet or settings.binance_testnet
+            if not use_testnet:
                 try:
                     data = public_market_service.get_symbol_price(symbol)
                     return data['price']
@@ -156,7 +168,8 @@ class BinanceService:
         """
         try:
             # Use public API for production market data
-            if not settings.binance_testnet:
+            use_testnet = settings.binance_use_testnet or settings.binance_testnet
+            if not use_testnet:
                 try:
                     return public_market_service.get_klines(symbol, interval, limit)
                 except Exception as e:
@@ -283,7 +296,8 @@ class BinanceService:
         """Get 24hr ticker statistics with enhanced data validation"""
         try:
             # Use public API for production market data
-            if not settings.binance_testnet:
+            use_testnet = settings.binance_use_testnet or settings.binance_testnet
+            if not use_testnet:
                 try:
                     return public_market_service.get_24hr_ticker_stats(symbol)
                 except Exception as e:
