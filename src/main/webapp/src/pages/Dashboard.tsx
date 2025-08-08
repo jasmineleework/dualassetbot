@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider } from 'antd';
 import { 
-  DollarOutlined, 
-  LineChartOutlined, 
-  RobotOutlined,
   SyncOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
@@ -73,6 +70,7 @@ const Dashboard: React.FC = () => {
   const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
   const [analysisReport, setAnalysisReport] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
   
   // WebSocket hooks for real-time data
   const { prices: realtimePrices } = usePriceUpdates([selectedPair]);
@@ -148,6 +146,8 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchData(selectedPair);
+    // Auto-generate analysis report on first load and pair change
+    generateAnalysisReport();
   }, [selectedPair]);
   
   useEffect(() => {
@@ -202,6 +202,7 @@ const Dashboard: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setAnalysisReport(data.report);
+        setAnalysisData(data.market_data);
       } else {
         // Fallback to basic report if API fails
         const fallbackReport = `
@@ -467,288 +468,223 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
         </Space>
       </div>
 
+      {/* Simplified price display card */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
+        <Col span={24}>
           <Card>
-            <Statistic
-              title="Bot Status"
-              value={botStatus?.bot_running ? 'Running' : 'Stopped'}
-              valueStyle={{ color: botStatus?.bot_running ? '#3f8600' : '#cf1322' }}
-              prefix={<RobotOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={`${currentPairInfo?.asset || ''} Price`}
-              value={displayPrice || 0}
-              precision={2}
-              prefix="$"
-              suffix={
-                <span style={{ fontSize: '14px' }}>
-                  {realtimePrices[selectedPair] && <Badge status="processing" style={{ marginRight: 8 }} />}
-                  {marketAnalysis && getTrendIcon(marketAnalysis.trend.trend)}
-                </span>
-              }
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="24h Change"
-              value={stats24hr?.price_change_percent || marketAnalysis?.price_change_24h || 0}
-              precision={2}
-              valueStyle={{ 
-                color: (stats24hr?.price_change_percent || marketAnalysis?.price_change_24h || 0) > 0 ? '#3f8600' : '#cf1322' 
-              }}
-              prefix={<LineChartOutlined />}
-              suffix="%"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Active Strategies"
-              value={botStatus?.strategies_active || 0}
-              prefix={<DollarOutlined />}
-            />
+            <Row align="middle">
+              <Col span={8}>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 14 }}>Current Price</Text>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                    <Title level={2} style={{ margin: 0 }}>
+                      ${displayPrice?.toLocaleString() || '0.00'}
+                    </Title>
+                    <Text 
+                      style={{ 
+                        fontSize: 18,
+                        color: (stats24hr?.price_change_percent || marketAnalysis?.price_change_24h || 0) > 0 ? '#52c41a' : '#f5222d',
+                        fontWeight: 500
+                      }}
+                    >
+                      ({(stats24hr?.price_change_percent || marketAnalysis?.price_change_24h || 0) > 0 ? '+' : ''}
+                      {(stats24hr?.price_change_percent || marketAnalysis?.price_change_24h || 0).toFixed(2)}%)
+                    </Text>
+                    {realtimePrices[selectedPair] && <Badge status="processing" text="Live" />}
+                  </div>
+                </div>
+              </Col>
+              <Col span={16}>
+                <Space size="large" style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <div>
+                    <Text type="secondary">24h High</Text>
+                    <div><Text strong style={{ fontSize: 16 }}>${stats24hr?.high_24h?.toLocaleString() || 'N/A'}</Text></div>
+                  </div>
+                  <div>
+                    <Text type="secondary">24h Low</Text>
+                    <div><Text strong style={{ fontSize: 16 }}>${stats24hr?.low_24h?.toLocaleString() || 'N/A'}</Text></div>
+                  </div>
+                  <div>
+                    <Text type="secondary">24h Volume</Text>
+                    <div><Text strong style={{ fontSize: 16 }}>{stats24hr?.volume?.toFixed(2) || 'N/A'} {currentPairInfo?.asset}</Text></div>
+                  </div>
+                </Space>
+              </Col>
+            </Row>
           </Card>
         </Col>
       </Row>
 
-      {stats24hr && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={24}>
-            <Card title="24 Hour Statistics">
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Statistic
-                    title="24h High"
-                    value={stats24hr.high_24h}
-                    prefix="$"
-                    precision={2}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="24h Low"
-                    value={stats24hr.low_24h}
-                    prefix="$"
-                    precision={2}
-                    valueStyle={{ color: '#f5222d' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="24h Volume"
-                    value={stats24hr.volume}
-                    suffix={currentPairInfo?.asset || ''}
-                    precision={2}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="Price Change"
-                    value={stats24hr.price_change}
-                    prefix="$"
-                    precision={2}
-                    valueStyle={{ 
-                      color: stats24hr.price_change > 0 ? '#3f8600' : '#cf1322' 
-                    }}
-                  />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-        </Row>
-      )}
 
-      {/* Enhanced Market Intelligence & Predictions Card */}
-      {marketAnalysis && (
+      {/* Market Intelligence & Predictions Card - Based on Analysis Report */}
+      {analysisData && (
         <>
           <Row gutter={16} style={{ marginBottom: 24 }}>
             <Col span={24}>
               <Card 
-                title="Market Intelligence & Predictions" 
+                title="Market Intelligence & Predictions (Based on Analysis Report)" 
                 extra={
                   <Space>
-                    <Badge status="processing" text="Real-time" />
-                    <Text type="secondary">Last updated: {new Date().toLocaleTimeString()}</Text>
+                    <Button 
+                      size="small" 
+                      icon={<SyncOutlined />} 
+                      onClick={generateAnalysisReport}
+                      loading={generatingReport}
+                    >
+                      Update Analysis
+                    </Button>
+                    <Text type="secondary">From K-line Analysis</Text>
                   </Space>
                 }
               >
                 <Row gutter={16}>
-                  <Col span={4}>
-                    <Statistic
-                      title="Current Price"
-                      value={displayPrice || 0}
-                      prefix="$"
-                      precision={2}
-                      valueStyle={{ fontSize: 20 }}
-                    />
-                  </Col>
-                  <Col span={4}>
+                  <Col span={6}>
                     <Statistic
                       title="24h Price Prediction"
-                      value={marketAnalysis.price_prediction_24h?.direction || 'NEUTRAL'}
-                      prefix={marketAnalysis.price_prediction_24h?.direction === 'UP' ? 
+                      value={analysisData.price_prediction_24h?.direction || analysisData.trend?.trend || 'NEUTRAL'}
+                      prefix={analysisData.price_prediction_24h?.direction === 'UP' || analysisData.trend?.trend === 'BULLISH' ? 
                         <ArrowUpOutlined style={{ color: '#52c41a' }} /> : 
-                        marketAnalysis.price_prediction_24h?.direction === 'DOWN' ?
+                        analysisData.price_prediction_24h?.direction === 'DOWN' || analysisData.trend?.trend === 'BEARISH' ?
                         <ArrowDownOutlined style={{ color: '#f5222d' }} /> :
                         <InfoCircleOutlined style={{ color: '#1890ff' }} />
                       }
                       valueStyle={{ 
                         fontSize: 16,
-                        color: marketAnalysis.price_prediction_24h?.direction === 'UP' ? '#52c41a' : 
-                               marketAnalysis.price_prediction_24h?.direction === 'DOWN' ? '#f5222d' : '#1890ff'
+                        color: analysisData.price_prediction_24h?.direction === 'UP' || analysisData.trend?.trend === 'BULLISH' ? '#52c41a' : 
+                               analysisData.price_prediction_24h?.direction === 'DOWN' || analysisData.trend?.trend === 'BEARISH' ? '#f5222d' : '#1890ff'
                       }}
                     />
-                    {marketAnalysis.price_prediction_24h?.confidence && (
+                    {analysisData.price_prediction_24h?.confidence && (
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        Confidence: {(marketAnalysis.price_prediction_24h.confidence * 100).toFixed(0)}%
+                        Confidence: {(analysisData.price_prediction_24h.confidence * 100).toFixed(0)}%
                       </Text>
                     )}
                   </Col>
-                  <Col span={4}>
+                  <Col span={6}>
                     <Statistic
                       title="24h Volatility Forecast"
-                      value={marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level}
+                      value={analysisData.volatility_prediction?.level || analysisData.volatility?.risk_level || 'MEDIUM'}
                       valueStyle={{ 
                         fontSize: 16,
-                        color: (marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'HIGH' ? '#f5222d' : 
-                               (marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'LOW' ? '#52c41a' : '#faad14'
+                        color: (analysisData.volatility_prediction?.level || analysisData.volatility?.risk_level) === 'HIGH' ? '#f5222d' : 
+                               (analysisData.volatility_prediction?.level || analysisData.volatility?.risk_level) === 'LOW' ? '#52c41a' : '#faad14'
                       }}
                     />
-                    {marketAnalysis.volatility_prediction?.value && (
+                    {(analysisData.volatility_prediction?.value || analysisData.volatility?.volatility_ratio) && (
                       <Progress 
-                        percent={Math.min(marketAnalysis.volatility_prediction.value * 100, 100)} 
+                        percent={Math.min((analysisData.volatility_prediction?.value || analysisData.volatility?.volatility_ratio) * 100, 100)} 
                         size="small"
-                        strokeColor={(marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'HIGH' ? '#f5222d' : 
-                                    (marketAnalysis.volatility_prediction?.level || marketAnalysis.volatility.risk_level) === 'LOW' ? '#52c41a' : '#faad14'}
+                        strokeColor={(analysisData.volatility_prediction?.level || analysisData.volatility?.risk_level) === 'HIGH' ? '#f5222d' : 
+                                    (analysisData.volatility_prediction?.level || analysisData.volatility?.risk_level) === 'LOW' ? '#52c41a' : '#faad14'}
                         showInfo={false}
                       />
                     )}
                   </Col>
-                  <Col span={4}>
+                  <Col span={6}>
                     <Statistic
                       title="Support Level"
-                      value={marketAnalysis.support_resistance?.support || (displayPrice ? displayPrice * 0.95 : 0)}
+                      value={analysisData.support_resistance?.support || (displayPrice ? displayPrice * 0.95 : 0)}
                       prefix="$"
                       precision={2}
                       valueStyle={{ fontSize: 16, color: '#52c41a' }}
                     />
                   </Col>
-                  <Col span={4}>
+                  <Col span={6}>
                     <Statistic
                       title="Resistance Level"
-                      value={marketAnalysis.support_resistance?.resistance || (displayPrice ? displayPrice * 1.05 : 0)}
+                      value={analysisData.support_resistance?.resistance || (displayPrice ? displayPrice * 1.05 : 0)}
                       prefix="$"
                       precision={2}
                       valueStyle={{ fontSize: 16, color: '#f5222d' }}
-                    />
-                  </Col>
-                  <Col span={4}>
-                    <Statistic
-                      title="24h Risk Level"
-                      value={marketAnalysis.risk_level || 'MEDIUM'}
-                      prefix={marketAnalysis.risk_level === 'HIGH' ? 
-                        <ExclamationCircleOutlined style={{ color: '#f5222d' }} /> : 
-                        marketAnalysis.risk_level === 'LOW' ?
-                        <InfoCircleOutlined style={{ color: '#52c41a' }} /> :
-                        <InfoCircleOutlined style={{ color: '#faad14' }} />
-                      }
-                      valueStyle={{ 
-                        fontSize: 16,
-                        color: marketAnalysis.risk_level === 'HIGH' ? '#f5222d' : 
-                               marketAnalysis.risk_level === 'LOW' ? '#52c41a' : '#faad14'
-                      }}
                     />
                   </Col>
                 </Row>
               </Card>
             </Col>
           </Row>
+        </>
+      )}
           
+      {marketAnalysis && (
+        <>
           <Row gutter={16} style={{ marginBottom: 24 }}>
             <Col span={12}>
               <Card title="Market Analysis">
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <div>
-                    <strong>Trend:</strong>{' '}
-                    <Tag color={marketAnalysis.trend.trend === 'BULLISH' ? 'green' : 'red'}>
-                      {marketAnalysis.trend.trend} ({marketAnalysis.trend.strength})
-                    </Tag>
-                  </div>
-                  <div>
-                    <strong>Volatility:</strong>{' '}
-                    <Tag color={marketAnalysis.volatility.risk_level === 'HIGH' ? 'red' : 'blue'}>
-                      {marketAnalysis.volatility.risk_level}
-                    </Tag>
-                  </div>
-                  <div>
-                    <strong>Overall Signal:</strong>{' '}
-                    <Tag color={getSignalColor(marketAnalysis.signals.recommendation)}>
-                      {marketAnalysis.signals.recommendation}
-                    </Tag>
-                  </div>
-                </Space>
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Card title="Technical Indicators">
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <div>
-                    <strong>RSI:</strong>{' '}
-                    <Tag color={getSignalColor(marketAnalysis.signals.rsi_signal)}>
-                      {marketAnalysis.signals.rsi_signal}
-                    </Tag>
-                  </div>
-                  <div>
-                    <strong>MACD:</strong>{' '}
-                    <Tag color={getSignalColor(marketAnalysis.signals.macd_signal)}>
-                      {marketAnalysis.signals.macd_signal}
-                    </Tag>
-                  </div>
-                  <div>
-                    <strong>Bollinger Bands:</strong>{' '}
-                    <Tag color={getSignalColor(marketAnalysis.signals.bb_signal)}>
-                      {marketAnalysis.signals.bb_signal}
-                    </Tag>
-                  </div>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div>
+                      <strong>Trend:</strong>{' '}
+                      <Tag color={marketAnalysis.trend.trend === 'BULLISH' ? 'green' : 'red'}>
+                        {marketAnalysis.trend.trend} ({marketAnalysis.trend.strength})
+                      </Tag>
+                    </div>
+                    <div>
+                      <strong>Volatility:</strong>{' '}
+                      <Tag color={marketAnalysis.volatility.risk_level === 'HIGH' ? 'red' : 'blue'}>
+                        {marketAnalysis.volatility.risk_level}
+                      </Tag>
+                    </div>
+                    <div>
+                      <strong>Overall Signal:</strong>{' '}
+                      <Tag color={getSignalColor(marketAnalysis.signals.recommendation)}>
+                        {marketAnalysis.signals.recommendation}
+                      </Tag>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="Technical Indicators">
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div>
+                      <strong>RSI:</strong>{' '}
+                      <Tag color={getSignalColor(marketAnalysis.signals.rsi_signal)}>
+                        {marketAnalysis.signals.rsi_signal}
+                      </Tag>
+                    </div>
+                    <div>
+                      <strong>MACD:</strong>{' '}
+                      <Tag color={getSignalColor(marketAnalysis.signals.macd_signal)}>
+                        {marketAnalysis.signals.macd_signal}
+                      </Tag>
+                    </div>
+                    <div>
+                      <strong>Bollinger Bands:</strong>{' '}
+                      <Tag color={getSignalColor(marketAnalysis.signals.bb_signal)}>
+                        {marketAnalysis.signals.bb_signal}
+                      </Tag>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
 
           {/* Data Visualization Charts */}
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={12}>
-              <SimpleBarChart
-                title="Signal Strength Analysis"
-                data={[
-                  { label: 'RSI', value: marketAnalysis.signals.rsi_signal === 'BUY' ? 75 : marketAnalysis.signals.rsi_signal === 'SELL' ? 25 : 50, color: '#1890ff' },
-                  { label: 'MACD', value: marketAnalysis.signals.macd_signal === 'BUY' ? 80 : marketAnalysis.signals.macd_signal === 'SELL' ? 20 : 50, color: '#52c41a' },
-                  { label: 'BB', value: marketAnalysis.signals.bb_signal === 'BUY' ? 70 : marketAnalysis.signals.bb_signal === 'SELL' ? 30 : 50, color: '#faad14' },
-                  { label: 'Overall', value: marketAnalysis.signals.recommendation === 'BUY' ? 85 : marketAnalysis.signals.recommendation === 'SELL' ? 15 : 50, color: '#722ed1' }
-                ]}
-                height={200}
-              />
-            </Col>
-            <Col span={12}>
-              <SimplePieChart
-                title="Risk Distribution"
-                data={[
-                  { label: 'Low Risk', value: marketAnalysis.volatility.risk_level === 'LOW' ? 60 : 20, color: '#52c41a' },
-                  { label: 'Medium Risk', value: marketAnalysis.volatility.risk_level === 'MEDIUM' ? 60 : 30, color: '#faad14' },
-                  { label: 'High Risk', value: marketAnalysis.volatility.risk_level === 'HIGH' ? 60 : 10, color: '#f5222d' }
-                ]}
-              />
-            </Col>
-          </Row>
+          {marketAnalysis && (
+            <Row gutter={16} style={{ marginBottom: 24 }}>
+              <Col span={12}>
+                <SimpleBarChart
+                  title="Signal Strength Analysis"
+                  data={[
+                    { label: 'RSI', value: marketAnalysis.signals.rsi_signal === 'BUY' ? 75 : marketAnalysis.signals.rsi_signal === 'SELL' ? 25 : 50, color: '#1890ff' },
+                    { label: 'MACD', value: marketAnalysis.signals.macd_signal === 'BUY' ? 80 : marketAnalysis.signals.macd_signal === 'SELL' ? 20 : 50, color: '#52c41a' },
+                    { label: 'BB', value: marketAnalysis.signals.bb_signal === 'BUY' ? 70 : marketAnalysis.signals.bb_signal === 'SELL' ? 30 : 50, color: '#faad14' },
+                    { label: 'Overall', value: marketAnalysis.signals.recommendation === 'BUY' ? 85 : marketAnalysis.signals.recommendation === 'SELL' ? 15 : 50, color: '#722ed1' }
+                  ]}
+                  height={200}
+                />
+              </Col>
+              <Col span={12}>
+                <SimplePieChart
+                  title="Risk Distribution"
+                  data={[
+                    { label: 'Low Risk', value: marketAnalysis.volatility.risk_level === 'LOW' ? 60 : 20, color: '#52c41a' },
+                    { label: 'Medium Risk', value: marketAnalysis.volatility.risk_level === 'MEDIUM' ? 60 : 30, color: '#faad14' },
+                    { label: 'High Risk', value: marketAnalysis.volatility.risk_level === 'HIGH' ? 60 : 10, color: '#f5222d' }
+                  ]}
+                />
+              </Col>
+            </Row>
+          )}
         </>
       )}
 
