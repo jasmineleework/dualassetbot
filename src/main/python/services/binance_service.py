@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import time
 from .public_market_service import public_market_service
+from .cache_service import cache_service
 
 class BinanceService:
     """Service for interacting with Binance API"""
@@ -127,21 +128,33 @@ class BinanceService:
             raise
     
     def get_symbol_price(self, symbol: str) -> float:
-        """Get current price for a symbol"""
+        """Get current price for a symbol with caching"""
+        # Try to get from cache first
+        cached_price = cache_service.get_symbol_price(symbol)
+        if cached_price is not None:
+            logger.debug(f"Using cached price for {symbol}: {cached_price}")
+            return float(cached_price)
+        
         try:
             # Use public API for production market data
             use_testnet = settings.binance_use_testnet or settings.binance_testnet
             if not use_testnet:
                 try:
                     data = public_market_service.get_symbol_price(symbol)
-                    return data['price']
+                    price = data['price']
+                    # Cache the price
+                    cache_service.set_symbol_price(symbol, price)
+                    return price
                 except Exception as e:
                     logger.warning(f"Public API failed, falling back to authenticated client: {e}")
             
             # Fallback to authenticated client
             self.ensure_initialized()
             ticker = self.client.get_symbol_ticker(symbol=symbol)
-            return float(ticker['price'])
+            price = float(ticker['price'])
+            # Cache the price
+            cache_service.set_symbol_price(symbol, price)
+            return price
             
         except Exception as e:
             logger.error(f"Failed to get price for {symbol}: {e}")
@@ -206,7 +219,7 @@ class BinanceService:
     
     def get_dual_investment_products(self, symbol: Optional[str] = None, max_days: int = 2) -> List[Dict[str, Any]]:
         """
-        Get real dual investment products from Binance API
+        Get real dual investment products from Binance API with caching
         
         Args:
             symbol: Optional symbol to filter (e.g., 'BTCUSDT' or 'BTC')
@@ -215,6 +228,12 @@ class BinanceService:
         Returns:
             List of dual investment products, filtered by symbol and days to settlement
         """
+        # Try to get from cache first
+        cached_products = cache_service.get_dual_products(symbol, max_days)
+        if cached_products is not None:
+            logger.info(f"Using cached dual products for {symbol or 'all'} (≤{max_days} days): {len(cached_products)} products")
+            return cached_products
+        
         try:
             self.ensure_initialized()
             
@@ -266,8 +285,12 @@ class BinanceService:
             
             if products:
                 logger.info(f"Successfully fetched {len(products)} dual investment products for {symbol or 'all'} (≤{max_days} days)")
+                # Cache the products
+                cache_service.set_dual_products(products, symbol, max_days)
             else:
                 logger.warning(f"No dual investment products available for {symbol or 'all'} within {max_days} days")
+                # Cache empty result to avoid repeated API calls
+                cache_service.set_dual_products([], symbol, max_days)
                 
             return products
             
@@ -375,7 +398,13 @@ class BinanceService:
         }
     
     def get_24hr_ticker_stats(self, symbol: str) -> Dict[str, Any]:
-        """Get 24hr ticker statistics with enhanced data validation"""
+        """Get 24hr ticker statistics with caching and enhanced data validation"""
+        # Try to get from cache first
+        cached_stats = cache_service.get_market_stats(symbol)
+        if cached_stats is not None:
+            logger.debug(f"Using cached 24hr stats for {symbol}")
+            return cached_stats
+        
         try:
             # Use public API for production market data
             use_testnet = settings.binance_use_testnet or settings.binance_testnet
@@ -475,7 +504,7 @@ class BinanceService:
                 
                 logger.debug(f"{symbol} 24h stats - Source: {data_source}, High: {high_24h:.2f}, Low: {low_24h:.2f}, Current: {last_price:.2f}")
             
-            return {
+            stats = {
                 'symbol': ticker['symbol'],
                 'price_change': price_change,
                 'price_change_percent': price_change_percent,
@@ -485,6 +514,11 @@ class BinanceService:
                 'low_24h': low_24h,
                 'data_source': data_source  # Track where the data came from
             }
+            
+            # Cache the stats
+            cache_service.set_market_stats(symbol, stats)
+            
+            return stats
             
         except Exception as e:
             logger.error(f"Failed to get 24hr stats for {symbol}: {e}")

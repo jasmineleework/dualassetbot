@@ -9,6 +9,8 @@ import json
 import numpy as np
 from services.binance_service import binance_service
 from core.dual_investment_engine import dual_investment_engine
+from services.cache_service import cache_service
+from tasks.update_products import invalidate_product_cache
 from loguru import logger
 
 router = APIRouter(prefix="/api/v1/dual-investment", tags=["dual-investment"])
@@ -93,16 +95,24 @@ async def refresh_dual_investment_products(
     symbol: Optional[str] = Query(None, description="Filter by symbol (e.g., BTCUSDT, BTC)"),
     max_days: int = Query(2, description="Maximum days to settlement (default 2)")
 ):
-    """Manually refresh dual investment product list"""
+    """Manually refresh dual investment product list - triggers background task"""
     try:
-        # Force refresh by calling API again
+        # Invalidate cache for this specific query
+        cache_key = f"dual_products:{symbol or 'all'}:{max_days}"
+        cache_service.delete(cache_key)
+        
+        # Trigger background task to update all products
+        task = invalidate_product_cache.delay()
+        
+        # Try to get updated products immediately (might still be from cache if task not done)
         products = binance_service.get_dual_investment_products(symbol=symbol, max_days=max_days)
         
         return {
             "success": True,
             "products": products,
             "total": len(products),
-            "message": f"Successfully refreshed {len(products)} products" if products else "No products available",
+            "task_id": task.id if task else None,
+            "message": "Refresh initiated. Products will be updated in background.",
             "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
@@ -180,6 +190,45 @@ async def get_investment_history(
         "offset": offset,
         "message": "History tracking not yet implemented"
     }
+
+@router.get("/cache/stats")
+async def get_cache_stats():
+    """Get cache statistics"""
+    try:
+        stats = cache_service.get_cache_stats()
+        return {
+            "success": True,
+            "stats": stats,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Failed to get cache stats: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@router.post("/cache/warmup")
+async def warmup_cache():
+    """Manually trigger cache warmup"""
+    try:
+        from tasks.update_products import warmup_cache as warmup_task
+        task = warmup_task.delay()
+        
+        return {
+            "success": True,
+            "task_id": task.id if task else None,
+            "message": "Cache warmup initiated",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Failed to warmup cache: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @router.get("/ai-recommendations/{symbol}")
 async def get_ai_recommendations(

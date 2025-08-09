@@ -11,7 +11,7 @@ celery_app = Celery(
     "dualassetbot",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=['tasks.trading_tasks', 'tasks.analysis_tasks', 'tasks.monitoring_tasks']
+    include=['tasks.trading_tasks', 'tasks.analysis_tasks', 'tasks.monitoring_tasks', 'tasks.update_products']
 )
 
 # Celery configuration
@@ -46,6 +46,12 @@ celery_app.conf.update(
     
     # Beat schedule for periodic tasks
     beat_schedule={
+        # Every 5 minutes - Update dual investment products
+        'update-dual-products': {
+            'task': 'update_dual_investment_products',
+            'schedule': 300.0,  # 5 minutes
+        },
+        
         # Every 5 minutes - Market data update
         'update-market-data': {
             'task': 'tasks.analysis_tasks.update_market_data',
