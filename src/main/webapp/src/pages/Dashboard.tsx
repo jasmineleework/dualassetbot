@@ -93,7 +93,12 @@ const Dashboard: React.FC = () => {
     setProductsError(null);
     
     try {
-      const response = await fetch('/api/v1/dual-investment/products/refresh', {
+      // Pass current symbol and max_days=2 when refreshing
+      const params = new URLSearchParams();
+      params.append('symbol', selectedPair.replace('USDT', ''));
+      params.append('max_days', '2');
+      
+      const response = await fetch(`/api/v1/dual-investment/products/refresh?${params.toString()}`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -132,7 +137,7 @@ const Dashboard: React.FC = () => {
         
         // Still try to get mock products
         try {
-          const productsRes = await apiService.getDualInvestmentProducts();
+          const productsRes = await apiService.getDualInvestmentProducts(targetSymbol.replace('USDT', ''), 2);
           if (Array.isArray(productsRes)) {
             setProducts(productsRes);
           } else if ('products' in productsRes && productsRes.products) {
@@ -148,7 +153,7 @@ const Dashboard: React.FC = () => {
       const results = await Promise.allSettled([
         apiService.getPrice(targetSymbol),
         apiService.getMarketAnalysis(targetSymbol),
-        apiService.getDualInvestmentProducts(),
+        apiService.getDualInvestmentProducts(targetSymbol.replace('USDT', ''), 2),
         apiService.get24hrStats(targetSymbol),
         fetchAIRecommendations(targetSymbol)
       ]);

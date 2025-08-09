@@ -55,16 +55,18 @@ class SubscribeRequest(BaseModel):
 
 @router.get("/products")
 async def get_dual_investment_products(
+    symbol: Optional[str] = Query(None, description="Filter by symbol (e.g., BTCUSDT, BTC)"),
     asset: Optional[str] = Query(None, description="Filter by asset (e.g., BTC, ETH)"),
-    type: Optional[str] = Query(None, description="Filter by type (BUY_LOW or SELL_HIGH)")
+    type: Optional[str] = Query(None, description="Filter by type (BUY_LOW or SELL_HIGH)"),
+    max_days: int = Query(2, description="Maximum days to settlement (default 2)")
 ):
     """Get available dual investment products, returns empty list if unavailable"""
     try:
-        products = binance_service.get_dual_investment_products()
+        # Use symbol parameter if provided, otherwise fall back to asset
+        filter_symbol = symbol or asset
+        products = binance_service.get_dual_investment_products(symbol=filter_symbol, max_days=max_days)
         
-        # Apply filters
-        if asset:
-            products = [p for p in products if p.get('asset', '').upper() == asset.upper()]
+        # Apply type filter if specified
         if type:
             products = [p for p in products if p.get('type', '').upper() == type.upper()]
         
@@ -87,11 +89,14 @@ async def get_dual_investment_products(
         }
 
 @router.post("/products/refresh")
-async def refresh_dual_investment_products():
+async def refresh_dual_investment_products(
+    symbol: Optional[str] = Query(None, description="Filter by symbol (e.g., BTCUSDT, BTC)"),
+    max_days: int = Query(2, description="Maximum days to settlement (default 2)")
+):
     """Manually refresh dual investment product list"""
     try:
         # Force refresh by calling API again
-        products = binance_service.get_dual_investment_products()
+        products = binance_service.get_dual_investment_products(symbol=symbol, max_days=max_days)
         
         return {
             "success": True,

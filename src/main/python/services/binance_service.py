@@ -204,10 +204,16 @@ class BinanceService:
             logger.error(f"Failed to get klines for {symbol}: {e}")
             raise
     
-    def get_dual_investment_products(self) -> List[Dict[str, Any]]:
+    def get_dual_investment_products(self, symbol: Optional[str] = None, max_days: int = 2) -> List[Dict[str, Any]]:
         """
         Get real dual investment products from Binance API
-        Returns empty list if unable to fetch products
+        
+        Args:
+            symbol: Optional symbol to filter (e.g., 'BTCUSDT' or 'BTC')
+            max_days: Maximum days to settlement (default 2 days)
+            
+        Returns:
+            List of dual investment products, filtered by symbol and days to settlement
         """
         try:
             self.ensure_initialized()
@@ -223,25 +229,35 @@ class BinanceService:
             
             products = []
             
-            # Define asset pairs to fetch
-            asset_pairs = [
-                ('BTC', 'USDT'),
-                ('ETH', 'USDT'),
-                ('BNB', 'USDT')
-            ]
+            # Determine which asset pairs to fetch based on symbol
+            if symbol:
+                # Extract asset from symbol (e.g., 'BTCUSDT' -> 'BTC', 'BTC' -> 'BTC')
+                asset = symbol.replace('USDT', '').upper()
+                asset_pairs = [(asset, 'USDT')]
+            else:
+                # Default to all supported pairs
+                asset_pairs = [
+                    ('BTC', 'USDT'),
+                    ('ETH', 'USDT'),
+                    ('BNB', 'USDT')
+                ]
             
             for asset, quote in asset_pairs:
                 try:
                     # BUY_LOW (PUT options) - invest USDT to potentially buy asset
-                    logger.info(f"Fetching BUY_LOW products for {asset}")
-                    put_products = self._dci_service.get_product_list('PUT', asset, quote)
-                    converted_puts = self._convert_dci_products(put_products, 'BUY_LOW', asset, quote)
+                    logger.info(f"Fetching BUY_LOW products for {asset} (max {max_days} days)")
+                    put_products = self._dci_service.get_product_list('PUT', asset, quote, page_size=10)
+                    logger.info(f"Received {len(put_products) if put_products else 0} PUT products from API")
+                    converted_puts = self._convert_dci_products(put_products, 'BUY_LOW', asset, quote, max_days)
+                    logger.info(f"Filtered to {len(converted_puts)} PUT products within {max_days} days")
                     products.extend(converted_puts)
                     
                     # SELL_HIGH (CALL options) - invest asset to potentially get USDT
-                    logger.info(f"Fetching SELL_HIGH products for {asset}")
-                    call_products = self._dci_service.get_product_list('CALL', quote, asset)
-                    converted_calls = self._convert_dci_products(call_products, 'SELL_HIGH', asset, quote)
+                    logger.info(f"Fetching SELL_HIGH products for {asset} (max {max_days} days)")
+                    call_products = self._dci_service.get_product_list('CALL', quote, asset, page_size=10)
+                    logger.info(f"Received {len(call_products) if call_products else 0} CALL products from API")
+                    converted_calls = self._convert_dci_products(call_products, 'SELL_HIGH', asset, quote, max_days)
+                    logger.info(f"Filtered to {len(converted_calls)} CALL products within {max_days} days")
                     products.extend(converted_calls)
                     
                 except Exception as e:
@@ -249,9 +265,9 @@ class BinanceService:
                     continue
             
             if products:
-                logger.info(f"Successfully fetched {len(products)} dual investment products")
+                logger.info(f"Successfully fetched {len(products)} dual investment products for {symbol or 'all'} (≤{max_days} days)")
             else:
-                logger.warning("No dual investment products available")
+                logger.warning(f"No dual investment products available for {symbol or 'all'} within {max_days} days")
                 
             return products
             
@@ -264,7 +280,8 @@ class BinanceService:
         raw_products: List[Dict[str, Any]], 
         product_type: str,
         asset: str,
-        quote: str
+        quote: str,
+        max_days: int = 2
     ) -> List[Dict[str, Any]]:
         """
         Convert Binance API format to system format
@@ -274,11 +291,19 @@ class BinanceService:
             product_type: 'BUY_LOW' or 'SELL_HIGH'
             asset: Asset symbol (e.g., 'BTC')
             quote: Quote currency (e.g., 'USDT')
+            max_days: Maximum days to settlement
             
         Returns:
             List of converted products
         """
         converted = []
+        
+        # Get current price once for all products
+        try:
+            current_price = self.get_symbol_price(f"{asset}{quote}")
+        except:
+            current_price = 0
+            logger.warning(f"Failed to get current price for {asset}{quote}, using strike price as fallback")
         
         for product in raw_products:
             try:
@@ -289,11 +314,19 @@ class BinanceService:
                 else:
                     settlement_date = datetime.now() + timedelta(days=product.get('duration', 1))
                 
-                # Get current price for the pair
-                try:
-                    current_price = self.get_symbol_price(f"{asset}{quote}")
-                except:
+                # Use strike price if current price fetch failed
+                if current_price == 0:
                     current_price = float(product.get('strikePrice', 0))
+                
+                # Filter by max_days
+                term_days = int(product.get('duration', 0))
+                time_to_settlement = settlement_date - datetime.now()
+                days_to_settlement = time_to_settlement.total_seconds() / 86400  # More precise calculation
+                
+                # Only include products within max_days to settlement
+                if days_to_settlement > max_days:
+                    logger.debug(f"Skipping product {product.get('id')} - {days_to_settlement:.1f} days > {max_days} days limit")
+                    continue
                 
                 converted_product = {
                     'id': product.get('id', ''),
@@ -302,7 +335,7 @@ class BinanceService:
                     'currency': quote,
                     'strike_price': float(product.get('strikePrice', 0)),
                     'apy': float(product.get('apr', 0)),
-                    'term_days': int(product.get('duration', 0)),
+                    'term_days': term_days,
                     'min_amount': float(product.get('minAmount', 0)),
                     'max_amount': float(product.get('maxAmount', 0)),
                     'settlement_date': settlement_date,

@@ -217,8 +217,13 @@ class ApiService {
   }
 
   // Dual Investment
-  async getDualInvestmentProducts(): Promise<{products?: DualInvestmentProduct[], message?: string} | DualInvestmentProduct[]> {
-    return this.fetchJson('/api/v1/dual-investment/products');
+  async getDualInvestmentProducts(symbol?: string, maxDays: number = 2): Promise<{products?: DualInvestmentProduct[], message?: string} | DualInvestmentProduct[]> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    params.append('max_days', maxDays.toString());
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.fetchJson(`/api/v1/dual-investment/products${query}`);
   }
 
   async analyzeDualInvestment(symbol: string) {
