@@ -206,73 +206,122 @@ class BinanceService:
     
     def get_dual_investment_products(self) -> List[Dict[str, Any]]:
         """
-        Generate dual investment products based on real market data
-        
-        Uses TestnetDualProductAdapter for realistic product generation
+        Get real dual investment products from Binance API
+        Returns empty list if unable to fetch products
         """
         try:
             self.ensure_initialized()
             
-            # Use testnet adapter for better product generation
-            if settings.binance_testnet:
-                if not self._testnet_adapter:
-                    from services.testnet_dual_product_adapter import TestnetDualProductAdapter
-                    self._testnet_adapter = TestnetDualProductAdapter(self)
-                
-                products = self._testnet_adapter.get_all_products()
-                if products:
-                    logger.info(f"Generated {len(products)} dual investment products from testnet data")
-                    return products
+            if not self.client:
+                logger.error("Binance client not initialized - check API credentials")
+                return []
             
-            # Fallback to simple generation for non-testnet
+            # Initialize Dual Investment API service
+            if not hasattr(self, '_dci_service'):
+                from services.dual_investment_api_service import DualInvestmentAPIService
+                self._dci_service = DualInvestmentAPIService(self.client)
+            
             products = []
-            symbols = ['BTCUSDT', 'ETHUSDT']
             
-            for symbol in symbols:
+            # Define asset pairs to fetch
+            asset_pairs = [
+                ('BTC', 'USDT'),
+                ('ETH', 'USDT'),
+                ('BNB', 'USDT')
+            ]
+            
+            for asset, quote in asset_pairs:
                 try:
-                    current_price = self.get_symbol_price(symbol)
-                    asset = symbol.replace('USDT', '')
-                    stats = self.get_24hr_ticker_stats(symbol)
-                    volatility = abs(stats['price_change_percent'])
+                    # BUY_LOW (PUT options) - invest USDT to potentially buy asset
+                    logger.info(f"Fetching BUY_LOW products for {asset}")
+                    put_products = self._dci_service.get_product_list('PUT', asset, quote)
+                    converted_puts = self._convert_dci_products(put_products, 'BUY_LOW', asset, quote)
+                    products.extend(converted_puts)
                     
-                    # Generate basic products
-                    products.append({
-                        'id': f'{asset}-USDT-BUYLOW-{datetime.now().strftime("%Y%m%d")}',
-                        'asset': asset,
-                        'currency': 'USDT',
-                        'type': 'BUY_LOW',
-                        'strike_price': round(current_price * 0.95, 2),
-                        'apy': round(min(0.15 + volatility * 0.01, 0.50), 4),
-                        'term_days': 7,
-                        'min_amount': 100,
-                        'max_amount': 10000,
-                        'settlement_date': datetime.now() + timedelta(days=7),
-                        'current_price': current_price
-                    })
-                    
-                    products.append({
-                        'id': f'{asset}-USDT-SELLHIGH-{datetime.now().strftime("%Y%m%d")}',
-                        'asset': asset,
-                        'currency': 'USDT',
-                        'type': 'SELL_HIGH',
-                        'strike_price': round(current_price * 1.05, 2),
-                        'apy': round(min(0.12 + volatility * 0.008, 0.40), 4),
-                        'term_days': 7,
-                        'min_amount': 0.001 if asset == 'BTC' else 0.01,
-                        'max_amount': 1 if asset == 'BTC' else 10,
-                        'settlement_date': datetime.now() + timedelta(days=7),
-                        'current_price': current_price
-                    })
+                    # SELL_HIGH (CALL options) - invest asset to potentially get USDT
+                    logger.info(f"Fetching SELL_HIGH products for {asset}")
+                    call_products = self._dci_service.get_product_list('CALL', quote, asset)
+                    converted_calls = self._convert_dci_products(call_products, 'SELL_HIGH', asset, quote)
+                    products.extend(converted_calls)
                     
                 except Exception as e:
-                    logger.warning(f"Failed to generate products for {symbol}: {e}")
+                    logger.error(f"Failed to get products for {asset}/{quote}: {e}")
                     continue
             
-            return products if products else []
+            if products:
+                logger.info(f"Successfully fetched {len(products)} dual investment products")
+            else:
+                logger.warning("No dual investment products available")
+                
+            return products
             
         except Exception as e:
-            logger.error(f"Failed to generate dual investment products: {e}")
+            logger.error(f"Critical error in get_dual_investment_products: {e}", exc_info=True)
             return []
+    
+    def _convert_dci_products(
+        self, 
+        raw_products: List[Dict[str, Any]], 
+        product_type: str,
+        asset: str,
+        quote: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Convert Binance API format to system format
+        
+        Args:
+            raw_products: Raw product list from API
+            product_type: 'BUY_LOW' or 'SELL_HIGH'
+            asset: Asset symbol (e.g., 'BTC')
+            quote: Quote currency (e.g., 'USDT')
+            
+        Returns:
+            List of converted products
+        """
+        converted = []
+        
+        for product in raw_products:
+            try:
+                # Parse settlement date
+                settle_timestamp = product.get('settleDate', 0)
+                if settle_timestamp:
+                    settlement_date = datetime.fromtimestamp(settle_timestamp / 1000)
+                else:
+                    settlement_date = datetime.now() + timedelta(days=product.get('duration', 1))
+                
+                # Get current price for the pair
+                try:
+                    current_price = self.get_symbol_price(f"{asset}{quote}")
+                except:
+                    current_price = float(product.get('strikePrice', 0))
+                
+                converted_product = {
+                    'id': product.get('id', ''),
+                    'type': product_type,
+                    'asset': asset,
+                    'currency': quote,
+                    'strike_price': float(product.get('strikePrice', 0)),
+                    'apy': float(product.get('apr', 0)),
+                    'term_days': int(product.get('duration', 0)),
+                    'min_amount': float(product.get('minAmount', 0)),
+                    'max_amount': float(product.get('maxAmount', 0)),
+                    'settlement_date': settlement_date,
+                    'can_purchase': product.get('canPurchase', False),
+                    'current_price': current_price,
+                    # Additional fields from API
+                    'purchase_end_time': product.get('purchaseEndTime'),
+                    'is_auto_compound': product.get('isAutoCompoundEnable', False),
+                    'auto_compound_plans': product.get('autoCompoundPlanList', [])
+                }
+                
+                converted.append(converted_product)
+                
+            except Exception as e:
+                logger.warning(f"Failed to convert product {product.get('id', 'unknown')}: {e}")
+                continue
+        
+        logger.debug(f"Converted {len(converted)} {product_type} products for {asset}/{quote}")
+        return converted
     
     def subscribe_dual_investment(self, product_id: str, amount: float) -> Dict[str, Any]:
         """

@@ -45,20 +45,18 @@ sleep 2
 
 # 启动后端服务
 echo -e "${YELLOW}启动后端服务 (端口 8081)...${NC}"
-cd "$PROJECT_ROOT/src/main/python"
 
-# 安装Python依赖（如果需要）
-if [ ! -d "venv" ]; then
+# 检查虚拟环境位置（项目根目录）
+if [ ! -d "$PROJECT_ROOT/venv" ]; then
     echo "创建Python虚拟环境..."
+    cd "$PROJECT_ROOT"
     python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements-minimal.txt
-else
-    source venv/bin/activate
+    "$PROJECT_ROOT/venv/bin/pip" install -r "$PROJECT_ROOT/src/main/python/requirements-minimal.txt"
 fi
 
-# 启动FastAPI
-nohup uvicorn api.main:app --reload --port 8081 > "$PROJECT_ROOT/logs/backend.log" 2>&1 &
+# 使用项目根目录的虚拟环境启动FastAPI
+cd "$PROJECT_ROOT/src/main/python"
+nohup "$PROJECT_ROOT/venv/bin/uvicorn" api.main:app --reload --port 8081 > "$PROJECT_ROOT/logs/backend.log" 2>&1 &
 BACKEND_PID=$!
 echo -e "${GREEN}✅ 后端服务已启动 (PID: $BACKEND_PID)${NC}"
 

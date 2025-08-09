@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs, message, Descriptions } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs, message, Descriptions, Empty } from 'antd';
 import { 
   SyncOutlined,
   ArrowUpOutlined,
@@ -9,7 +9,8 @@ import {
   FileSearchOutlined,
   ThunderboltOutlined,
   ExclamationCircleOutlined,
-  RobotOutlined
+  RobotOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { apiService, BotStatus, DualInvestmentProduct, MarketAnalysis } from '../services/api';
 import { usePriceUpdates, useSystemAlerts, usePortfolioUpdates } from '../hooks/useWebSocket';
@@ -64,6 +65,8 @@ const Dashboard: React.FC = () => {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [marketAnalysis, setMarketAnalysis] = useState<EnhancedMarketAnalysis | null>(null);
   const [products, setProducts] = useState<DualInvestmentProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [stats24hr, setStats24hr] = useState<any>(null);
   const [selectedPair, setSelectedPair] = useState<string>('BTCUSDT');
@@ -84,6 +87,33 @@ const Dashboard: React.FC = () => {
   
   // Get current pair info
   const currentPairInfo = SUPPORTED_PAIRS.find(p => p.value === selectedPair);
+
+  const refreshProducts = async () => {
+    setProductsLoading(true);
+    setProductsError(null);
+    
+    try {
+      const response = await fetch('/api/v1/dual-investment/products/refresh', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.products && data.products.length > 0) {
+        setProducts(data.products);
+        message.success(`刷新成功，获取到 ${data.products.length} 个产品`);
+      } else {
+        setProducts([]);
+        setProductsError(data.message || '暂无可用产品');
+        message.info(data.message || '暂无可用产品');
+      }
+    } catch (error) {
+      setProducts([]);
+      setProductsError('获取产品失败，请稍后重试');
+      message.error('刷新失败，请稍后重试');
+    } finally {
+      setProductsLoading(false);
+    }
+  };
 
   const fetchData = async (symbol?: string) => {
     const targetSymbol = symbol || selectedPair;
@@ -129,7 +159,17 @@ const Dashboard: React.FC = () => {
       }
       
       if (results[2].status === 'fulfilled') {
-        setProducts(results[2].value);
+        const productsResponse = results[2].value;
+        if (productsResponse.products) {
+          setProducts(productsResponse.products);
+          setProductsError(productsResponse.message || null);
+        } else {
+          // Old format compatibility
+          setProducts(Array.isArray(productsResponse) ? productsResponse : []);
+        }
+      } else {
+        setProducts([]);
+        setProductsError('暂无可用产品');
       }
       
       if (results[3].status === 'fulfilled') {
@@ -315,11 +355,13 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
       title: 'Product ID',
       dataIndex: 'id',
       key: 'id',
+      width: 180,
     },
     {
       title: 'Type',
       dataIndex: 'type',
       key: 'type',
+      width: 100,
       render: (type: string) => (
         <Tag color={type === 'BUY_LOW' ? 'green' : 'blue'}>
           {type === 'BUY_LOW' ? '低买' : '高卖'}
@@ -330,17 +372,29 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
       title: 'Asset',
       dataIndex: 'asset',
       key: 'asset',
+      width: 80,
     },
     {
       title: 'Strike Price',
       dataIndex: 'strike_price',
       key: 'strike_price',
-      render: (price: number) => `$${price.toLocaleString()}`,
+      width: 120,
+      render: (price: number, record: any) => (
+        <div>
+          <div>${price.toLocaleString()}</div>
+          {record.current_price && (
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              ({((price / record.current_price) * 100).toFixed(1)}%)
+            </Text>
+          )}
+        </div>
+      ),
     },
     {
       title: 'APY',
       dataIndex: 'apy',
       key: 'apy',
+      width: 100,
       render: (apy: number) => (
         <Text strong style={{ color: '#52c41a' }}>
           {(apy * 100).toFixed(1)}%
@@ -348,10 +402,26 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
       ),
     },
     {
-      title: 'Term',
-      dataIndex: 'term_days',
-      key: 'term_days',
-      render: (days: number) => `${days} days`,
+      title: 'Settlement',
+      dataIndex: 'settlement_date',
+      key: 'settlement_date',
+      width: 120,
+      render: (date: string | Date) => {
+        if (!date) return '-';
+        const settlementDate = new Date(date);
+        const now = new Date();
+        const daysLeft = Math.ceil((settlementDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return (
+          <div>
+            <div style={{ fontSize: 11 }}>
+              {settlementDate.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
+            </div>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {daysLeft > 0 ? `${daysLeft}天后` : '已到期'}
+            </Text>
+          </div>
+        );
+      },
     },
     {
       title: 'AI Score',
@@ -498,7 +568,7 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
           )}
           <Button
             icon={<FileSearchOutlined />}
-            onClick={generateAnalysisReport}
+            onClick={() => generateAnalysisReport(false)}
             type="default"
           >
             View Analysis Report
@@ -723,13 +793,54 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
         </>
       )}
 
-      <Card title="Available Dual Investment Products">
-        <Table
-          columns={productColumns}
-          dataSource={products}
-          rowKey="id"
-          pagination={false}
-        />
+      <Card 
+        title={
+          <Space>
+            <span>Available Dual Investment Products</span>
+            <Tag color="blue">2天内到期</Tag>
+          </Space>
+        }
+        extra={
+          <Space>
+            {products.length > 0 && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                共 {products.length} 个产品
+              </Text>
+            )}
+            <Button 
+              size="small" 
+              onClick={refreshProducts} 
+              loading={productsLoading}
+              icon={<ReloadOutlined />}
+            >
+              刷新
+            </Button>
+          </Space>
+        }
+      >
+        {productsLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Spin tip="正在加载产品..." />
+          </div>
+        ) : products.length > 0 ? (
+          <Table
+            columns={productColumns}
+            dataSource={products}
+            rowKey="id"
+            pagination={false}
+            size="small"
+          />
+        ) : (
+          <Empty 
+            description={productsError || "暂无可用产品"}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            style={{ padding: '40px 0' }}
+          >
+            <Button type="primary" onClick={refreshProducts}>
+              重新加载
+            </Button>
+          </Empty>
+        )}
       </Card>
       
       {/* Analysis Report Modal */}
@@ -758,324 +869,381 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
             <p style={{ marginTop: 16 }}>Generating professional analysis report...</p>
           </div>
         ) : (
-          <Tabs defaultActiveKey="chart">
-            <Tabs.TabPane tab="K-Line Chart" key="chart">
-              {chartImage ? (
-                <div style={{ textAlign: 'center' }}>
-                  <img 
-                    src={`data:image/png;base64,${chartImage}`} 
-                    alt="K-Line Chart" 
-                    style={{ maxWidth: '100%', height: 'auto' }}
-                  />
-                  <div style={{ marginTop: 8, color: '#888', fontSize: 12 }}>
-                    Source: {chartSource === 'binance_futures' ? 'Binance Futures Testnet' : 
-                             chartSource === 'generated' ? 'Generated Chart' : chartSource}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-                  <p>Chart not available</p>
-                  <p style={{ fontSize: 12 }}>Unable to generate chart for this symbol</p>
-                </div>
-              )}
-            </Tabs.TabPane>
-            <Tabs.TabPane tab="Technical Analysis" key="analysis">
-              {reportData ? (
-                <div>
-                  {/* Overview Section */}
-                  <Card size="small" title="Market Overview" style={{ marginBottom: 16 }}>
-                    <Descriptions column={2} size="small">
-                      <Descriptions.Item label="Current Price">
-                        <Text strong>${reportData.overview?.current_price?.toLocaleString() || '0.00'}</Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="24h Change">
-                        <Text style={{ color: reportData.overview?.price_change_24h > 0 ? '#52c41a' : '#f5222d' }}>
-                          {reportData.overview?.price_change_24h?.toFixed(2) || '0.00'}%
-                        </Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="24h High">
-                        ${reportData.overview?.high_24h?.toLocaleString() || '0.00'}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="24h Low">
-                        ${reportData.overview?.low_24h?.toLocaleString() || '0.00'}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="24h Volume">
-                        {reportData.overview?.volume_24h?.toLocaleString() || '0.00'}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Volume Trend">
-                        <Tag color={reportData.overview?.volume_change === 'POSITIVE' ? 'green' : 'red'}>
-                          {reportData.overview?.volume_change || 'NEUTRAL'}
-                        </Tag>
-                      </Descriptions.Item>
-                    </Descriptions>
-                  </Card>
-
-                  {/* Technical Indicators */}
-                  <Card size="small" title="Technical Indicators" style={{ marginBottom: 16 }}>
-                    <Row gutter={16}>
-                      <Col span={8}>
-                        <Statistic
-                          title="Trend"
-                          value={reportData.technical_analysis?.trend?.direction || 'NEUTRAL'}
-                          valueStyle={{ 
-                            color: reportData.technical_analysis?.trend?.direction === 'BULLISH' ? '#52c41a' : 
-                                   reportData.technical_analysis?.trend?.direction === 'BEARISH' ? '#f5222d' : '#666',
-                            fontSize: 16
-                          }}
-                          suffix={
-                            <Tag color="blue" style={{ marginLeft: 8 }}>
-                              {reportData.technical_analysis?.trend?.strength || 'MODERATE'}
-                            </Tag>
-                          }
-                        />
-                      </Col>
-                      <Col span={8}>
-                        <Statistic
-                          title="RSI"
-                          value={reportData.technical_analysis?.indicators?.rsi?.value || 50}
-                          suffix={
-                            <Tag color={
-                              reportData.technical_analysis?.indicators?.rsi?.value > 70 ? 'red' :
-                              reportData.technical_analysis?.indicators?.rsi?.value < 30 ? 'green' : 'blue'
-                            }>
-                              {reportData.technical_analysis?.indicators?.rsi?.signal || 'NEUTRAL'}
-                            </Tag>
-                          }
-                        />
-                      </Col>
-                      <Col span={8}>
-                        <Statistic
-                          title="Volatility"
-                          value={reportData.technical_analysis?.volatility?.level || 'MEDIUM'}
-                          valueStyle={{ fontSize: 16 }}
-                          suffix={
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              ATR: {reportData.technical_analysis?.volatility?.atr?.toFixed(2) || '0.00'}
-                            </Text>
-                          }
-                        />
-                      </Col>
-                    </Row>
-                    <Divider style={{ margin: '12px 0' }} />
-                    <Row gutter={16}>
-                      <Col span={8}>
-                        <Text type="secondary">Support Level</Text>
-                        <div><Text strong>${reportData.technical_analysis?.support_resistance?.support?.toLocaleString() || '0.00'}</Text></div>
-                      </Col>
-                      <Col span={8}>
-                        <Text type="secondary">Pivot Point</Text>
-                        <div><Text strong>${reportData.technical_analysis?.support_resistance?.pivot?.toLocaleString() || '0.00'}</Text></div>
-                      </Col>
-                      <Col span={8}>
-                        <Text type="secondary">Resistance Level</Text>
-                        <div><Text strong>${reportData.technical_analysis?.support_resistance?.resistance?.toLocaleString() || '0.00'}</Text></div>
-                      </Col>
-                    </Row>
-                  </Card>
-
-                  {/* 24h Prediction */}
-                  <Card size="small" title="24-Hour Forecast" style={{ marginBottom: 16 }}>
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <div style={{ marginBottom: 8 }}>
-                          <Text type="secondary">Price Direction</Text>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {reportData.prediction?.['24h']?.direction === 'UP' ? 
-                            <ArrowUpOutlined style={{ color: '#52c41a', fontSize: 24 }} /> :
-                            reportData.prediction?.['24h']?.direction === 'DOWN' ?
-                            <ArrowDownOutlined style={{ color: '#f5222d', fontSize: 24 }} /> :
-                            <Text style={{ fontSize: 24 }}>→</Text>
-                          }
-                          <Text strong style={{ fontSize: 18 }}>
-                            {reportData.prediction?.['24h']?.direction || 'SIDEWAYS'}
-                          </Text>
-                          <Progress 
-                            percent={reportData.prediction?.['24h']?.confidence * 100 || 50} 
-                            size="small" 
-                            style={{ width: 100 }}
-                            strokeColor="#1890ff"
-                          />
-                        </div>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          Confidence: {(reportData.prediction?.['24h']?.confidence * 100 || 50).toFixed(0)}%
-                        </Text>
-                      </Col>
-                      <Col span={12}>
-                        <div style={{ marginBottom: 8 }}>
-                          <Text type="secondary">Target Range</Text>
-                        </div>
-                        <div>
-                          <Text strong>
-                            ${reportData.prediction?.['24h']?.target_range?.low?.toLocaleString() || '0.00'} - 
-                            ${reportData.prediction?.['24h']?.target_range?.high?.toLocaleString() || '0.00'}
-                          </Text>
-                        </div>
-                        <Tag color="orange" style={{ marginTop: 8 }}>
-                          {reportData.prediction?.['24h']?.expected_volatility || 'MEDIUM'} Volatility
-                        </Tag>
-                      </Col>
-                    </Row>
-                  </Card>
-
-                  {/* Trading Recommendation */}
-                  <Alert
-                    message="Trading Recommendation"
-                    description={
-                      <div>
-                        <div style={{ marginBottom: 8 }}>
-                          <Tag color={
-                            reportData.recommendation?.signal === 'BUY' || reportData.recommendation?.signal === 'STRONG_BUY' ? 'green' :
-                            reportData.recommendation?.signal === 'SELL' || reportData.recommendation?.signal === 'STRONG_SELL' ? 'red' : 'blue'
-                          } style={{ marginRight: 8 }}>
-                            {reportData.recommendation?.signal || 'HOLD'}
-                          </Tag>
-                          <Tag color="purple">
-                            {reportData.recommendation?.strategy || 'WAIT'}
-                          </Tag>
-                        </div>
-                        <Text>{reportData.recommendation?.description || 'No specific recommendation at this time'}</Text>
-                        <div style={{ marginTop: 8 }}>
-                          <Text type="secondary">Risk Level: {reportData.recommendation?.risk_level || 'MEDIUM'} | 
-                            Suitable for: {reportData.recommendation?.suitability || 'Balanced portfolios'}</Text>
-                        </div>
+          <Tabs defaultActiveKey="analysis">
+            <Tabs.TabPane tab="Analysis" key="analysis">
+              <div>
+                {/* K-Line Chart at top */}
+                {chartImage && (
+                  <Card size="small" title="K-Line Chart" style={{ marginBottom: 16 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <img 
+                        src={`data:image/png;base64,${chartImage}`} 
+                        alt="K-Line Chart" 
+                        style={{ maxWidth: '100%', height: 'auto' }}
+                      />
+                      <div style={{ marginTop: 8, color: '#888', fontSize: 12 }}>
+                        Source: {chartSource === 'binance_futures' ? 'Binance Futures Testnet' : 
+                                 chartSource === 'generated' ? 'Generated Chart' : chartSource}
                       </div>
-                    }
-                    type={
-                      reportData.recommendation?.signal === 'BUY' || reportData.recommendation?.signal === 'STRONG_BUY' ? 'success' :
-                      reportData.recommendation?.signal === 'SELL' || reportData.recommendation?.signal === 'STRONG_SELL' ? 'warning' : 'info'
-                    }
-                    showIcon
-                  />
+                    </div>
+                  </Card>
+                )}
+                
+                {/* Market Data Section (from API, no label) */}
+                {reportData && (
+                  <div>
+                    <Card size="small" title="Market Overview" style={{ marginBottom: 16 }}>
+                      <Descriptions column={2} size="small">
+                        <Descriptions.Item label="Current Price">
+                          <Text strong>${reportData.overview?.current_price?.toLocaleString() || '0.00'}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="24h Change">
+                          <Text style={{ color: reportData.overview?.price_change_24h > 0 ? '#52c41a' : '#f5222d' }}>
+                            {reportData.overview?.price_change_24h?.toFixed(2) || '0.00'}%
+                          </Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="24h High">
+                          ${reportData.overview?.high_24h?.toLocaleString() || '0.00'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="24h Low">
+                          ${reportData.overview?.low_24h?.toLocaleString() || '0.00'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="24h Volume">
+                          {reportData.overview?.volume_24h?.toLocaleString() || '0.00'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Volume Trend">
+                          <Tag color={reportData.overview?.volume_change === 'POSITIVE' ? 'green' : 'red'}>
+                            {reportData.overview?.volume_change || 'NEUTRAL'}
+                          </Tag>
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Card>
 
-                  {/* Summary Text */}
-                  <div style={{ marginTop: 16, padding: 16, background: '#f5f5f5', borderRadius: 4 }}>
-                    <Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>
-                      {analysisReport}
-                    </Text>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                  {analysisReport}
-                </div>
-              )}
-            </Tabs.TabPane>
-            {aiAnalysis && aiAnalysis.enabled && (
-              <Tabs.TabPane tab="AI Analysis" key="ai">
-                <div>
-                  {/* Cache Status */}
-                  {aiAnalysis.from_cache !== undefined && (
-                    <Alert
-                      message={aiAnalysis.from_cache ? "Cached Analysis" : "Fresh Analysis"}
-                      description={
-                        <div>
-                          {aiAnalysis.from_cache ? (
-                            <>
-                              <Text>This analysis was retrieved from cache. </Text>
-                              <Text type="secondary">
-                                Generated at: {new Date(aiAnalysis.cache_timestamp || aiAnalysis.timestamp).toLocaleString()}
-                              </Text>
-                              <br />
+                    {/* Technical Indicators */}
+                    <Card size="small" title="Technical Indicators" style={{ marginBottom: 16 }}>
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Statistic
+                            title="Trend"
+                            value={reportData.technical_analysis?.trend?.direction || 'NEUTRAL'}
+                            valueStyle={{ 
+                              color: reportData.technical_analysis?.trend?.direction === 'BULLISH' ? '#52c41a' : 
+                                     reportData.technical_analysis?.trend?.direction === 'BEARISH' ? '#f5222d' : '#666',
+                              fontSize: 16
+                            }}
+                            suffix={
+                              <Tag color="blue" style={{ marginLeft: 8 }}>
+                                {reportData.technical_analysis?.trend?.strength || 'MODERATE'}
+                              </Tag>
+                            }
+                          />
+                        </Col>
+                        <Col span={8}>
+                          <Statistic
+                            title="RSI"
+                            value={reportData.technical_analysis?.indicators?.rsi?.value || 50}
+                            suffix={
+                              <Tag color={
+                                reportData.technical_analysis?.indicators?.rsi?.value > 70 ? 'red' :
+                                reportData.technical_analysis?.indicators?.rsi?.value < 30 ? 'green' : 'blue'
+                              }>
+                                {reportData.technical_analysis?.indicators?.rsi?.signal || 'NEUTRAL'}
+                              </Tag>
+                            }
+                          />
+                        </Col>
+                        <Col span={8}>
+                          <Statistic
+                            title="Volatility"
+                            value={reportData.technical_analysis?.volatility?.level || 'MEDIUM'}
+                            valueStyle={{ fontSize: 16 }}
+                            suffix={
                               <Text type="secondary" style={{ fontSize: 12 }}>
-                                AI analyses are cached for 1 hour per symbol. Click "Regenerate Report" to force a fresh analysis.
+                                ATR: {reportData.technical_analysis?.volatility?.atr?.toFixed(2) || '0.00'}
                               </Text>
-                            </>
-                          ) : (
-                            <>
-                              <Text>Fresh AI analysis generated. </Text>
-                              <Text type="secondary">
-                                Generated at: {new Date(aiAnalysis.generated_at || aiAnalysis.timestamp).toLocaleString()}
+                            }
+                          />
+                        </Col>
+                      </Row>
+                    </Card>
+                  </div>
+                )}
+                
+                {/* AI Analysis Section */}
+                {aiAnalysis && aiAnalysis.enabled && (
+                  <div>
+                    {/* Market Insights Card (First AI Module) */}
+                    <Card 
+                      size="small" 
+                      title={
+                        <Space>
+                          <span>市场洞察</span>
+                          <Tag color="blue">AI分析</Tag>
+                        </Space>
+                      } 
+                      style={{ marginBottom: 16, background: '#f0f8ff' }}
+                    >
+                      <Row gutter={16}>
+                        {/* 24h Prediction */}
+                        <Col span={12}>
+                          <Card size="small" title="24小时预测" bordered={false}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                              {reportData?.prediction?.['24h']?.direction === 'UP' ? 
+                                <ArrowUpOutlined style={{ color: '#52c41a', fontSize: 20 }} /> :
+                                reportData?.prediction?.['24h']?.direction === 'DOWN' ?
+                                <ArrowDownOutlined style={{ color: '#f5222d', fontSize: 20 }} /> :
+                                <Text style={{ fontSize: 20 }}>→</Text>
+                              }
+                              <Text strong>
+                                {reportData?.prediction?.['24h']?.direction === 'UP' ? '看涨' :
+                                 reportData?.prediction?.['24h']?.direction === 'DOWN' ? '看跌' : '横盘'}
                               </Text>
-                            </>
-                          )}
+                              <Progress 
+                                percent={(reportData?.prediction?.['24h']?.confidence || 0.5) * 100} 
+                                size="small" 
+                                style={{ width: 80 }}
+                                strokeColor="#1890ff"
+                              />
+                            </div>
+                            {reportData?.prediction?.['24h']?.target_low && (
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                目标区间: ${reportData.prediction['24h'].target_low?.toLocaleString()} - 
+                                ${reportData.prediction['24h'].target_high?.toLocaleString()}
+                              </Text>
+                            )}
+                          </Card>
+                        </Col>
+                        
+                        {/* Support & Resistance */}
+                        <Col span={12}>
+                          <Card size="small" title="支撑阻力位" bordered={false}>
+                            <div style={{ marginBottom: 8 }}>
+                              <Text type="secondary">支撑位: </Text>
+                              <Text strong>${reportData?.technical_analysis?.support_resistance?.support?.toLocaleString() || '计算中'}</Text>
+                            </div>
+                            <div>
+                              <Text type="secondary">阻力位: </Text>
+                              <Text strong>${reportData?.technical_analysis?.support_resistance?.resistance?.toLocaleString() || '计算中'}</Text>
+                            </div>
+                          </Card>
+                        </Col>
+                      </Row>
+                      
+                      {/* AI Market Analysis Text */}
+                      {aiAnalysis.market_overview && (
+                        <div style={{ marginTop: 16, padding: 12, background: '#fff', borderRadius: 4 }}>
+                          <Text>{aiAnalysis.market_overview}</Text>
                         </div>
-                      }
-                      type={aiAnalysis.from_cache ? "info" : "success"}
-                      showIcon
-                      closable
-                      style={{ marginBottom: 16 }}
-                    />
-                  )}
-                  
-                  {/* AI Confidence Score */}
-                  {aiAnalysis.confidence_score && (
-                    <Card size="small" title="AI Confidence" style={{ marginBottom: 16 }}>
-                      <Progress 
-                        percent={Math.round(aiAnalysis.confidence_score * 100)} 
-                        strokeColor={{
-                          '0%': '#108ee9',
-                          '100%': '#87d068',
-                        }}
-                      />
-                      <Text type="secondary">Model: {aiAnalysis.model || 'Claude'}</Text>
+                      )}
                     </Card>
-                  )}
-
-                  {/* Market Overview from AI */}
-                  {aiAnalysis.market_overview && (
-                    <Card size="small" title="AI Market Overview" style={{ marginBottom: 16 }}>
-                      <Text>{aiAnalysis.market_overview}</Text>
-                    </Card>
-                  )}
-
-                  {/* Pattern Analysis */}
-                  {aiAnalysis.pattern_analysis && (
-                    <Card size="small" title="Pattern Analysis" style={{ marginBottom: 16 }}>
-                      <Text>{aiAnalysis.pattern_analysis}</Text>
-                    </Card>
-                  )}
-
-                  {/* Trading Strategy */}
-                  {aiAnalysis.trading_strategy && (
-                    <Card size="small" title="AI Trading Strategy" style={{ marginBottom: 16 }}>
-                      <Alert
-                        message="Dual Investment Strategy"
-                        description={aiAnalysis.trading_strategy}
-                        type="info"
-                        showIcon
-                      />
-                    </Card>
-                  )}
-
-                  {/* Risk Assessment */}
-                  {aiAnalysis.risk_assessment && (
-                    <Card size="small" title="Risk Assessment" style={{ marginBottom: 16 }}>
-                      <Text>{aiAnalysis.risk_assessment}</Text>
-                    </Card>
-                  )}
-
-                  {/* Key Insights */}
-                  {aiAnalysis.key_insights && aiAnalysis.key_insights.length > 0 && (
-                    <Card size="small" title="Key AI Insights" style={{ marginBottom: 16 }}>
-                      <ul style={{ paddingLeft: 20 }}>
-                        {aiAnalysis.key_insights.map((insight: string, index: number) => (
-                          <li key={index}>
-                            <Text>{insight}</Text>
-                          </li>
-                        ))}
-                      </ul>
-                    </Card>
-                  )}
-
-                  {/* Warnings */}
-                  {aiAnalysis.warnings && aiAnalysis.warnings.length > 0 && (
-                    <Alert
-                      message="Risk Warnings"
-                      description={
-                        <ul style={{ paddingLeft: 20, marginBottom: 0 }}>
-                          {aiAnalysis.warnings.map((warning: string, index: number) => (
-                            <li key={index}>{warning}</li>
-                          ))}
-                        </ul>
-                      }
-                      type="warning"
-                      showIcon
-                    />
-                  )}
-                </div>
-              </Tabs.TabPane>
-            )}
+                    
+                    {/* Dual Investment Recommendations */}
+                    {aiAnalysis.dual_recommendations && (
+                      <Card 
+                        size="small" 
+                        title={
+                          <Space>
+                            <span>双币赢投资建议</span>
+                            <Tag color="gold">AI智能推荐</Tag>
+                          </Space>
+                        }
+                        style={{ marginBottom: 16 }}
+                      >
+                        {/* Recommendation Tables */}
+                        <Row gutter={16}>
+                          {/* BUY_LOW Recommendations */}
+                          <Col span={12}>
+                            <Card 
+                              size="small" 
+                              title={
+                                <Space>
+                                  <span>持有USDT策略 (BUY_LOW)</span>
+                                  {aiAnalysis.dual_recommendations.usdt_strategy?.recommend && 
+                                    <Tag color="green">推荐</Tag>
+                                  }
+                                </Space>
+                              }
+                              bordered={false}
+                              style={{ background: '#f6ffed' }}
+                            >
+                              {aiAnalysis.dual_recommendations.buy_low_products && 
+                               aiAnalysis.dual_recommendations.buy_low_products.length > 0 ? (
+                                <Table
+                                  size="small"
+                                  dataSource={aiAnalysis.dual_recommendations.buy_low_products}
+                                  rowKey="product_id"
+                                  pagination={false}
+                                  columns={[
+                                    {
+                                      title: '产品ID',
+                                      dataIndex: 'product_id',
+                                      key: 'product_id',
+                                      render: (id: string) => (
+                                        <Text style={{ fontSize: 11 }}>{id}</Text>
+                                      )
+                                    },
+                                    {
+                                      title: '推荐度',
+                                      dataIndex: 'recommendation',
+                                      key: 'recommendation',
+                                      width: 80,
+                                      render: (rec: string) => (
+                                        <Tag color={rec === '推荐' ? 'green' : rec === '观望' ? 'orange' : 'red'}>
+                                          {rec}
+                                        </Tag>
+                                      )
+                                    },
+                                    {
+                                      title: '置信度',
+                                      dataIndex: 'confidence',
+                                      key: 'confidence',
+                                      width: 80,
+                                      render: (conf: string) => (
+                                        <Tag color={conf === 'high' ? 'green' : conf === 'low' ? 'red' : 'blue'}>
+                                          {conf === 'high' ? '高' : conf === 'low' ? '低' : '中'}
+                                        </Tag>
+                                      )
+                                    }
+                                  ]}
+                                />
+                              ) : (
+                                <div>
+                                  {aiAnalysis.dual_recommendations.usdt_strategy?.product_id ? (
+                                    <Descriptions column={1} size="small">
+                                      <Descriptions.Item label="推荐产品">
+                                        {aiAnalysis.dual_recommendations.usdt_strategy.product_id}
+                                      </Descriptions.Item>
+                                      <Descriptions.Item label="建议仓位">
+                                        <Tag color="green">
+                                          {aiAnalysis.dual_recommendations.usdt_strategy.position_size || 30}%
+                                        </Tag>
+                                      </Descriptions.Item>
+                                      <Descriptions.Item label="置信度">
+                                        <Tag color={
+                                          aiAnalysis.dual_recommendations.usdt_strategy.confidence === 'high' ? 'green' :
+                                          aiAnalysis.dual_recommendations.usdt_strategy.confidence === 'low' ? 'red' : 'blue'
+                                        }>
+                                          {aiAnalysis.dual_recommendations.usdt_strategy.confidence === 'high' ? '高' :
+                                           aiAnalysis.dual_recommendations.usdt_strategy.confidence === 'low' ? '低' : '中'}
+                                        </Tag>
+                                      </Descriptions.Item>
+                                    </Descriptions>
+                                  ) : (
+                                    <Text type="secondary">暂无具体产品推荐</Text>
+                                  )}
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                          
+                          {/* SELL_HIGH Recommendations */}
+                          <Col span={12}>
+                            <Card 
+                              size="small" 
+                              title={
+                                <Space>
+                                  <span>持币策略 (SELL_HIGH)</span>
+                                  {aiAnalysis.dual_recommendations.coin_strategy?.recommend && 
+                                    <Tag color="orange">推荐</Tag>
+                                  }
+                                </Space>
+                              }
+                              bordered={false}
+                              style={{ background: '#fff7e6' }}
+                            >
+                              {aiAnalysis.dual_recommendations.sell_high_products && 
+                               aiAnalysis.dual_recommendations.sell_high_products.length > 0 ? (
+                                <Table
+                                  size="small"
+                                  dataSource={aiAnalysis.dual_recommendations.sell_high_products}
+                                  rowKey="product_id"
+                                  pagination={false}
+                                  columns={[
+                                    {
+                                      title: '产品ID',
+                                      dataIndex: 'product_id',
+                                      key: 'product_id',
+                                      render: (id: string) => (
+                                        <Text style={{ fontSize: 11 }}>{id}</Text>
+                                      )
+                                    },
+                                    {
+                                      title: '推荐度',
+                                      dataIndex: 'recommendation',
+                                      key: 'recommendation',
+                                      width: 80,
+                                      render: (rec: string) => (
+                                        <Tag color={rec === '推荐' ? 'green' : rec === '观望' ? 'orange' : 'red'}>
+                                          {rec}
+                                        </Tag>
+                                      )
+                                    },
+                                    {
+                                      title: '置信度',
+                                      dataIndex: 'confidence',
+                                      key: 'confidence',
+                                      width: 80,
+                                      render: (conf: string) => (
+                                        <Tag color={conf === 'high' ? 'green' : conf === 'low' ? 'red' : 'blue'}>
+                                          {conf === 'high' ? '高' : conf === 'low' ? '低' : '中'}
+                                        </Tag>
+                                      )
+                                    }
+                                  ]}
+                                />
+                              ) : (
+                                <div>
+                                  {aiAnalysis.dual_recommendations.coin_strategy?.product_id ? (
+                                    <Descriptions column={1} size="small">
+                                      <Descriptions.Item label="推荐产品">
+                                        {aiAnalysis.dual_recommendations.coin_strategy.product_id}
+                                      </Descriptions.Item>
+                                      <Descriptions.Item label="建议仓位">
+                                        <Tag color="orange">
+                                          {aiAnalysis.dual_recommendations.coin_strategy.position_size || 30}%
+                                        </Tag>
+                                      </Descriptions.Item>
+                                      <Descriptions.Item label="置信度">
+                                        <Tag color={
+                                          aiAnalysis.dual_recommendations.coin_strategy.confidence === 'high' ? 'green' :
+                                          aiAnalysis.dual_recommendations.coin_strategy.confidence === 'low' ? 'red' : 'blue'
+                                        }>
+                                          {aiAnalysis.dual_recommendations.coin_strategy.confidence === 'high' ? '高' :
+                                           aiAnalysis.dual_recommendations.coin_strategy.confidence === 'low' ? '低' : '中'}
+                                        </Tag>
+                                      </Descriptions.Item>
+                                    </Descriptions>
+                                  ) : (
+                                    <Text type="secondary">暂无具体产品推荐</Text>
+                                  )}
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                        </Row>
+                        
+                        {/* AI Analysis Text */}
+                        {aiAnalysis.dual_recommendations.analysis_text && (
+                          <div style={{ marginTop: 16, padding: 12, background: '#f5f5f5', borderRadius: 4 }}>
+                            <Text strong style={{ display: 'block', marginBottom: 8 }}>AI投资分析：</Text>
+                            <Text style={{ whiteSpace: 'pre-wrap' }}>
+                              {aiAnalysis.dual_recommendations.analysis_text}
+                            </Text>
+                          </div>
+                        )}
+                      </Card>
+                    )}
+                    
+                    {/* Risk Assessment */}
+                    {aiAnalysis.risk_assessment && (
+                      <Card size="small" title="风险评估" style={{ marginBottom: 16 }}>
+                        <Text>{aiAnalysis.risk_assessment}</Text>
+                      </Card>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Tabs.TabPane>
           </Tabs>
         )}
       </Modal>

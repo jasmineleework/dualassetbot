@@ -53,25 +53,63 @@ class SubscribeRequest(BaseModel):
     product_id: str
     amount: float
 
-@router.get("/products", response_model=List[DualInvestmentProduct])
+@router.get("/products")
 async def get_dual_investment_products(
     asset: Optional[str] = Query(None, description="Filter by asset (e.g., BTC, ETH)"),
     type: Optional[str] = Query(None, description="Filter by type (BUY_LOW or SELL_HIGH)")
 ):
-    """Get available dual investment products"""
+    """Get available dual investment products, returns empty list if unavailable"""
     try:
         products = binance_service.get_dual_investment_products()
         
         # Apply filters
         if asset:
-            products = [p for p in products if p['asset'] == asset.upper()]
+            products = [p for p in products if p.get('asset', '').upper() == asset.upper()]
         if type:
-            products = [p for p in products if p['type'] == type.upper()]
+            products = [p for p in products if p.get('type', '').upper() == type.upper()]
         
-        return products
+        # Return structured response
+        return {
+            "products": products,
+            "total": len(products),
+            "message": "暂无可用产品" if not products else None,
+            "timestamp": datetime.now().isoformat()
+        }
+        
     except Exception as e:
-        logger.error(f"Failed to get dual investment products: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in get_dual_investment_products endpoint: {e}")
+        # Return empty list instead of 500 error
+        return {
+            "products": [],
+            "total": 0,
+            "message": "暂时无法获取产品信息，请稍后重试",
+            "timestamp": datetime.now().isoformat()
+        }
+
+@router.post("/products/refresh")
+async def refresh_dual_investment_products():
+    """Manually refresh dual investment product list"""
+    try:
+        # Force refresh by calling API again
+        products = binance_service.get_dual_investment_products()
+        
+        return {
+            "success": True,
+            "products": products,
+            "total": len(products),
+            "message": f"Successfully refreshed {len(products)} products" if products else "No products available",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Failed to refresh products: {e}")
+        return {
+            "success": False,
+            "products": [],
+            "total": 0,
+            "message": "Failed to refresh products",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @router.get("/analyze/{symbol}")
 async def analyze_investment_opportunity(symbol: str):

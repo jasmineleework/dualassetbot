@@ -8,9 +8,13 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import anthropic
 from loguru import logger
+from dotenv import load_dotenv
 from core.config import settings
 import asyncio
 from services.cache_service import cache_service
+
+# Load environment variables
+load_dotenv()
 
 class AIAnalysisService:
     """Service for AI-powered market analysis using Claude"""
@@ -44,6 +48,7 @@ class AIAnalysisService:
         symbol: str, 
         market_data: Dict[str, Any],
         kline_data: Optional[Dict[str, Any]] = None,
+        dual_products: Optional[List[Dict[str, Any]]] = None,
         include_oi: bool = False,
         force_refresh: bool = False
     ) -> Dict[str, Any]:
@@ -83,8 +88,12 @@ class AIAnalysisService:
             # Prepare context for AI
             context = self._prepare_market_context(symbol, market_data, kline_data)
             
+            # Add dual products to context if available
+            if dual_products:
+                context['dual_products'] = dual_products
+            
             # Generate prompts for different aspects
-            prompts = self._create_analysis_prompts(context, include_oi)
+            prompts = self._create_analysis_prompts(context, include_oi, dual_products)
             
             # Get AI responses
             analyses = {}
@@ -169,7 +178,8 @@ class AIAnalysisService:
     def _create_analysis_prompts(
         self, 
         context: Dict[str, Any],
-        include_oi: bool = False
+        include_oi: bool = False,
+        dual_products: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, str]:
         """Create specific prompts for different analysis aspects"""
         
@@ -191,46 +201,91 @@ class AIAnalysisService:
         - MACD Signal: {context.get('technical_indicators', {}).get('macd', 'NEUTRAL')}
         - Overall Recommendation: {context.get('technical_indicators', {}).get('recommendation', 'HOLD')}
         
-        Provide a concise market overview focusing on:
-        1. Current market sentiment
-        2. Key price levels to watch
-        3. Volume analysis insights
-        Keep the response under 150 words and professional.
+        Provide analysis including:
+        1. Current market sentiment and trend analysis
+        2. Key support levels (provide 2-3 specific price levels)
+        3. Key resistance levels (provide 2-3 specific price levels)
+        4. 24-hour price prediction (direction, target range, confidence level)
+        5. Volume analysis insights
+        
+        Keep the response under 200 words. Please provide your response in Chinese (Simplified Chinese).
         """
         
         # K-line Pattern Analysis Prompt
         prompts['pattern_analysis'] = f"""
         Analyze the K-line chart patterns for {context['symbol']} based on recent price action.
         
-        Support Level: ${context['support_resistance'].get('support', 0):,.2f}
-        Resistance Level: ${context['support_resistance'].get('resistance', 0):,.2f}
         Current Price: ${context['current_price']:,.2f}
+        Previous Support/Resistance (system calculated):
+        - Support: ${context['support_resistance'].get('support', 0):,.2f}
+        - Resistance: ${context['support_resistance'].get('resistance', 0):,.2f}
         
-        Identified Patterns: {', '.join(context.get('kline_patterns', ['No specific patterns detected']))}
+        Based on technical analysis, identify:
+        1. More accurate support levels (2-3 levels)
+        2. More accurate resistance levels (2-3 levels)
+        3. Key chart patterns forming
+        4. Potential breakout or breakdown levels
+        5. Pattern reliability and timeframe
         
-        Provide insights on:
-        1. Key chart patterns forming
-        2. Potential breakout or breakdown levels
-        3. Pattern reliability and timeframe
-        Keep the response under 100 words.
+        Please provide your response in Chinese (Simplified Chinese). Keep under 150 words.
         """
         
-        # Trading Strategy Prompt
+        # Trading Strategy Prompt with actual dual products
+        products_info = ""
+        if dual_products:
+            # Format BUY_LOW products
+            buy_low_products = [p for p in dual_products if p.get('type') == 'BUY_LOW']
+            sell_high_products = [p for p in dual_products if p.get('type') == 'SELL_HIGH']
+            
+            if buy_low_products:
+                products_info += "\nActual BUY_LOW Products Available:\n"
+                for p in buy_low_products[:3]:  # Show top 3
+                    products_info += f"  - Product ID: {p.get('id')}\n"
+                    products_info += f"    Strike Price: ${p.get('strike_price', 0):,.2f} ({(p.get('strike_price', 0) / context['current_price'] * 100):.1f}% of current)\n"
+                    products_info += f"    APY: {p.get('apy', 0) * 100:.2f}%\n"
+                    products_info += f"    Term: {p.get('term_days', 0)} days\n"
+                    products_info += f"    Settlement Date: {p.get('settlement_date', 'N/A')}\n"
+            
+            if sell_high_products:
+                products_info += "\nActual SELL_HIGH Products Available:\n"
+                for p in sell_high_products[:3]:  # Show top 3
+                    products_info += f"  - Product ID: {p.get('id')}\n"
+                    products_info += f"    Strike Price: ${p.get('strike_price', 0):,.2f} ({(p.get('strike_price', 0) / context['current_price'] * 100):.1f}% of current)\n"
+                    products_info += f"    APY: {p.get('apy', 0) * 100:.2f}%\n"
+                    products_info += f"    Term: {p.get('term_days', 0)} days\n"
+                    products_info += f"    Settlement Date: {p.get('settlement_date', 'N/A')}\n"
+        
         prompts['trading_strategy'] = f"""
-        Based on the current market analysis for {context['symbol']}, suggest a dual investment strategy.
+        Based on the current market analysis for {context['symbol']}, analyze these specific dual investment products and provide investment recommendations.
         
         Market Conditions:
+        - Current Price: ${context['current_price']:,.2f}
         - Trend: {context['trend'].get('trend', 'NEUTRAL')}
         - Volatility: {context['volatility'].get('risk_level', 'MEDIUM')}
         - Technical Signal: {context.get('technical_indicators', {}).get('recommendation', 'HOLD')}
+        {products_info if products_info else "No specific products available - provide general recommendations"}
         
-        Recommend:
-        1. Whether to use BUY_LOW or SELL_HIGH dual investment products
-        2. Optimal strike price range (as percentage from current price)
-        3. Risk management considerations
-        4. Expected market scenario for next 24-48 hours
+        For each available product, analyze and recommend:
+        1. Whether to invest (推荐/观望/不推荐)
+        2. Confidence level (high/medium/low)
+        3. Recommended position size (10%, 30%, 50%, or 70% of holdings)
+        4. Exercise probability based on market analysis
+        5. Key risk factors
         
-        Focus on dual investment products only. Keep response under 150 words.
+        Specifically provide:
+        1. For USDT holders (BUY_LOW products):
+           - Which specific product ID to invest in (if any)
+           - Position size recommendation
+           - Confidence level and reasoning
+        
+        2. For {context['symbol'].replace("USDT", "")} holders (SELL_HIGH products):
+           - Which specific product ID to invest in (if any)
+           - Position size recommendation
+           - Confidence level and reasoning
+        
+        3. Overall dual investment strategy for next 48 hours
+        
+        Please provide your response in Chinese (Simplified Chinese). Be specific with product IDs and percentages.
         """
         
         # Risk Assessment Prompt
@@ -244,9 +299,11 @@ class AIAnalysisService:
         
         Identify:
         1. Main risk factors in current market
-        2. Probability of significant price movement
-        3. Recommended position sizing approach
-        Keep response under 100 words.
+        2. Probability of significant price movement in next 24-48 hours
+        3. Recommended position sizing for dual investment products
+        4. Key risk events to monitor
+        
+        Please provide your response in Chinese (Simplified Chinese). Keep response under 100 words.
         """
         
         # Add Open Interest analysis if requested
@@ -301,6 +358,15 @@ class AIAnalysisService:
     ) -> Dict[str, Any]:
         """Format AI analyses into structured response"""
         
+        # Extract support/resistance from AI analysis
+        support_resistance = self._extract_support_resistance(analyses.get('market_overview', ''))
+        
+        # Extract 24h prediction from AI analysis
+        prediction_24h = self._extract_24h_prediction(analyses.get('market_overview', ''))
+        
+        # Extract dual investment recommendations
+        dual_recommendations = self._extract_dual_recommendations(analyses.get('trading_strategy', ''))
+        
         return {
             'enabled': True,
             'model': self.model,
@@ -312,7 +378,10 @@ class AIAnalysisService:
             'oi_analysis': analyses.get('oi_analysis', ''),
             'confidence_score': self._calculate_confidence(analyses, market_data),
             'key_insights': self._extract_key_insights(analyses),
-            'warnings': self._generate_warnings(market_data)
+            'warnings': self._generate_warnings(market_data),
+            'support_resistance': support_resistance,
+            'prediction_24h': prediction_24h,
+            'dual_recommendations': dual_recommendations
         }
     
     def _calculate_confidence(
@@ -389,6 +458,194 @@ class AIAnalysisService:
             warnings.append("Mixed technical signals - wait for clearer confirmation")
         
         return warnings
+    
+    def _extract_support_resistance(self, text: str) -> Dict[str, Any]:
+        """Extract support and resistance levels from AI analysis text"""
+        import re
+        
+        result = {
+            'support_levels': [],
+            'resistance_levels': [],
+            'key_support': None,
+            'key_resistance': None
+        }
+        
+        try:
+            # Try to extract prices mentioned as support/resistance
+            # Look for patterns like "支撑位：$XXX" or "support at $XXX"
+            support_pattern = r'(?:支撑|support)[^$]*?\$?([\d,]+\.?\d*)'
+            resistance_pattern = r'(?:阻力|压力|resistance)[^$]*?\$?([\d,]+\.?\d*)'
+            
+            support_matches = re.findall(support_pattern, text, re.IGNORECASE)
+            resistance_matches = re.findall(resistance_pattern, text, re.IGNORECASE)
+            
+            # Convert to float and clean up
+            for match in support_matches[:3]:  # Take top 3
+                try:
+                    price = float(match.replace(',', ''))
+                    result['support_levels'].append(price)
+                except:
+                    pass
+            
+            for match in resistance_matches[:3]:  # Take top 3
+                try:
+                    price = float(match.replace(',', ''))
+                    result['resistance_levels'].append(price)
+                except:
+                    pass
+            
+            # Set key levels as the first ones found
+            if result['support_levels']:
+                result['key_support'] = result['support_levels'][0]
+            if result['resistance_levels']:
+                result['key_resistance'] = result['resistance_levels'][0]
+                
+        except Exception as e:
+            logger.debug(f"Error extracting support/resistance: {e}")
+        
+        return result
+    
+    def _extract_24h_prediction(self, text: str) -> Dict[str, Any]:
+        """Extract 24-hour price prediction from AI analysis"""
+        
+        result = {
+            'direction': 'SIDEWAYS',
+            'confidence': 0.5,
+            'target_low': None,
+            'target_high': None
+        }
+        
+        try:
+            # Detect direction from Chinese or English keywords
+            if any(word in text for word in ['上涨', '看涨', 'bullish', 'upward', '上升']):
+                result['direction'] = 'UP'
+            elif any(word in text for word in ['下跌', '看跌', 'bearish', 'downward', '下降']):
+                result['direction'] = 'DOWN'
+            elif any(word in text for word in ['横盘', '震荡', 'sideways', 'consolidation', '盘整']):
+                result['direction'] = 'SIDEWAYS'
+            
+            # Extract confidence if mentioned
+            import re
+            confidence_pattern = r'(\d+)%.*?(?:信心|confidence|概率|probability)'
+            confidence_match = re.search(confidence_pattern, text, re.IGNORECASE)
+            if confidence_match:
+                result['confidence'] = float(confidence_match.group(1)) / 100
+            
+            # Extract target range if mentioned
+            range_pattern = r'\$?([\d,]+\.?\d*)[^\d]*?[-到至]\s*\$?([\d,]+\.?\d*)'
+            range_match = re.search(range_pattern, text)
+            if range_match:
+                try:
+                    result['target_low'] = float(range_match.group(1).replace(',', ''))
+                    result['target_high'] = float(range_match.group(2).replace(',', ''))
+                except:
+                    pass
+                    
+        except Exception as e:
+            logger.debug(f"Error extracting 24h prediction: {e}")
+        
+        return result
+    
+    def _extract_dual_recommendations(self, text: str) -> Dict[str, Any]:
+        """Extract dual investment recommendations from AI analysis"""
+        import re
+        
+        result = {
+            'buy_low_products': [],
+            'sell_high_products': [],
+            'usdt_strategy': {
+                'recommend': False,
+                'product_id': None,
+                'position_size': 30,
+                'confidence': 'medium',
+                'reasoning': ''
+            },
+            'coin_strategy': {
+                'recommend': False,
+                'product_id': None,
+                'position_size': 30,
+                'confidence': 'medium',
+                'reasoning': ''
+            },
+            'analysis_text': text  # Include full AI analysis text
+        }
+        
+        try:
+            # Extract product ID mentions
+            product_id_pattern = r'(?:Product ID|产品ID|ID)[:\s]*([A-Z0-9\-]+)'
+            product_ids = re.findall(product_id_pattern, text, re.IGNORECASE)
+            
+            # Extract recommendations for BUY_LOW
+            if any(word in text for word in ['BUY_LOW', 'BUY LOW', '低买', 'BUYLOW']):
+                buy_low_match = re.search(
+                    r'BUY[_\s]?LOW.*?(?:推荐|建议|recommend).*?(\d+)%',
+                    text, re.IGNORECASE | re.DOTALL
+                )
+                if buy_low_match:
+                    result['usdt_strategy']['recommend'] = True
+                    result['usdt_strategy']['position_size'] = int(buy_low_match.group(1))
+                
+                # Extract confidence
+                if any(word in text for word in ['高置信', 'high confidence', '强烈推荐']):
+                    result['usdt_strategy']['confidence'] = 'high'
+                elif any(word in text for word in ['低置信', 'low confidence', '谨慎']):
+                    result['usdt_strategy']['confidence'] = 'low'
+                
+                # Extract specific product ID for BUY_LOW
+                for pid in product_ids:
+                    if 'BUYLOW' in pid or 'BUY-LOW' in pid:
+                        result['usdt_strategy']['product_id'] = pid
+                        break
+            
+            # Extract recommendations for SELL_HIGH
+            if any(word in text for word in ['SELL_HIGH', 'SELL HIGH', '高卖', 'SELLHIGH']):
+                sell_high_match = re.search(
+                    r'SELL[_\s]?HIGH.*?(?:推荐|建议|recommend).*?(\d+)%',
+                    text, re.IGNORECASE | re.DOTALL
+                )
+                if sell_high_match:
+                    result['coin_strategy']['recommend'] = True
+                    result['coin_strategy']['position_size'] = int(sell_high_match.group(1))
+                
+                # Extract confidence
+                if any(word in text for word in ['高置信', 'high confidence', '强烈推荐']):
+                    result['coin_strategy']['confidence'] = 'high'
+                elif any(word in text for word in ['低置信', 'low confidence', '谨慎']):
+                    result['coin_strategy']['confidence'] = 'low'
+                
+                # Extract specific product ID for SELL_HIGH
+                for pid in product_ids:
+                    if 'SELLHIGH' in pid or 'SELL-HIGH' in pid:
+                        result['coin_strategy']['product_id'] = pid
+                        break
+            
+            # Parse product recommendations from structured text
+            # Look for patterns like "产品ID: XXX ... 推荐/观望/不推荐"
+            product_blocks = re.findall(
+                r'Product ID[:\s]*([^\n]+).*?(?:推荐|观望|不推荐)',
+                text, re.IGNORECASE | re.DOTALL
+            )
+            
+            for block in product_blocks:
+                if 'BUYLOW' in block or 'BUY-LOW' in block:
+                    recommendation = '推荐' if '推荐' in block and '不推荐' not in block else '观望'
+                    result['buy_low_products'].append({
+                        'product_id': block.strip(),
+                        'recommendation': recommendation,
+                        'confidence': result['usdt_strategy']['confidence']
+                    })
+                elif 'SELLHIGH' in block or 'SELL-HIGH' in block:
+                    recommendation = '推荐' if '推荐' in block and '不推荐' not in block else '观望'
+                    result['sell_high_products'].append({
+                        'product_id': block.strip(),
+                        'recommendation': recommendation,
+                        'confidence': result['coin_strategy']['confidence']
+                    })
+                    
+        except Exception as e:
+            logger.debug(f"Error extracting dual recommendations: {e}")
+        
+        return result
     
     async def generate_trade_rationale(
         self,

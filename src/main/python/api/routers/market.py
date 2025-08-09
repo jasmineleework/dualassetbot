@@ -383,17 +383,64 @@ async def get_kline_analysis(
         ai_analysis = None
         if include_ai:
             try:
+                # Get dual investment products for AI analysis
+                dual_products = []
+                try:
+                    from services.binance_service import binance_service
+                    from datetime import datetime, timedelta
+                    all_products = binance_service.get_dual_investment_products()
+                    # Filter products for this symbol and within 2 days
+                    asset = symbol.upper().replace('USDT', '')
+                    now = datetime.now()
+                    two_days_later = now + timedelta(days=2)
+                    
+                    dual_products = []
+                    for p in all_products:
+                        if p.get('asset') != asset:
+                            continue
+                        # Check settlement date
+                        settlement_date = p.get('settlement_date')
+                        if isinstance(settlement_date, str):
+                            try:
+                                settlement_date = datetime.fromisoformat(settlement_date.replace('Z', '+00:00'))
+                            except:
+                                continue
+                        if settlement_date and settlement_date <= two_days_later:
+                            dual_products.append(p)
+                    
+                    logger.info(f"Found {len(dual_products)} dual investment products for {asset} within 2 days")
+                except Exception as e:
+                    logger.warning(f"Failed to get dual products for AI analysis: {e}")
+                
                 logger.info(f"Generating AI analysis for {symbol} (force_refresh={force_refresh})")
                 ai_analysis = await ai_analysis_service.analyze_market_with_ai(
                     symbol=symbol.upper(),
                     market_data=market_analysis,
                     kline_data={'has_data': has_kline_data} if has_kline_data else None,
+                    dual_products=dual_products,  # Pass dual products to AI
                     include_oi=False,  # OI data not yet available
                     force_refresh=force_refresh
                 )
                 
                 if ai_analysis.get('enabled') and not ai_analysis.get('error'):
                     logger.info(f"AI analysis generated successfully for {symbol}")
+                    
+                    # Update support/resistance with AI analysis if available
+                    if ai_analysis.get('support_resistance'):
+                        ai_sr = ai_analysis['support_resistance']
+                        if ai_sr.get('key_support'):
+                            report_data['technical_analysis']['support_resistance']['support'] = ai_sr['key_support']
+                        if ai_sr.get('key_resistance'):
+                            report_data['technical_analysis']['support_resistance']['resistance'] = ai_sr['key_resistance']
+                        # Add all levels for detailed display
+                        report_data['technical_analysis']['support_resistance']['support_levels'] = ai_sr.get('support_levels', [])
+                        report_data['technical_analysis']['support_resistance']['resistance_levels'] = ai_sr.get('resistance_levels', [])
+                    
+                    # Update 24h prediction with AI analysis
+                    if ai_analysis.get('prediction_24h'):
+                        ai_pred = ai_analysis['prediction_24h']
+                        report_data['prediction']['24h'].update(ai_pred)
+                    
                     # Enhance summary with AI insights
                     if ai_analysis.get('market_overview'):
                         summary += f"\n\n## AI Market Insights\n{ai_analysis['market_overview']}"
