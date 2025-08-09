@@ -8,6 +8,7 @@ from typing import Any, Optional, Dict, List
 from datetime import timedelta
 from loguru import logger
 from core.config import settings
+from .memory_cache import memory_cache
 
 
 class CacheService:
@@ -16,6 +17,7 @@ class CacheService:
     def __init__(self):
         """Initialize Redis connection"""
         self.redis_client = None
+        self.use_memory_cache = False
         self.default_ttl = 300  # 5 minutes default TTL
         self.price_ttl = 10  # 10 seconds for price data
         self.product_ttl = 300  # 5 minutes for product data
@@ -36,18 +38,23 @@ class CacheService:
             self.redis_client.ping()
             logger.info("Redis cache service initialized successfully")
         except Exception as e:
-            logger.warning(f"Redis not available, cache disabled: {e}")
+            logger.warning(f"Redis not available, using memory cache as fallback: {e}")
             self.redis_client = None
+            self.use_memory_cache = True
     
     def is_available(self) -> bool:
-        """Check if Redis is available"""
+        """Check if cache is available (Redis or memory)"""
+        if self.use_memory_cache:
+            return True
         if not self.redis_client:
             return False
         try:
             self.redis_client.ping()
             return True
         except:
-            return False
+            # Fall back to memory cache
+            self.use_memory_cache = True
+            return True
     
     def get(self, key: str) -> Optional[Any]:
         """
@@ -59,7 +66,11 @@ class CacheService:
         Returns:
             Cached value or None if not found
         """
-        if not self.is_available():
+        # Use memory cache if Redis not available
+        if self.use_memory_cache:
+            return memory_cache.get(key)
+        
+        if not self.redis_client:
             return None
         
         try:
@@ -72,8 +83,9 @@ class CacheService:
                     return value
             return None
         except Exception as e:
-            logger.debug(f"Cache get error for key {key}: {e}")
-            return None
+            logger.debug(f"Redis get error for key {key}, falling back to memory: {e}")
+            self.use_memory_cache = True
+            return memory_cache.get(key)
     
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
         """
@@ -87,7 +99,13 @@ class CacheService:
         Returns:
             True if successful, False otherwise
         """
-        if not self.is_available():
+        ttl = ttl or self.default_ttl
+        
+        # Use memory cache if Redis not available
+        if self.use_memory_cache:
+            return memory_cache.set(key, value, ttl)
+        
+        if not self.redis_client:
             return False
         
         try:
@@ -95,13 +113,13 @@ class CacheService:
             if isinstance(value, (dict, list)):
                 value = json.dumps(value)
             
-            ttl = ttl or self.default_ttl
             self.redis_client.setex(key, ttl, value)
             logger.debug(f"Cached {key} with TTL {ttl}s")
             return True
         except Exception as e:
-            logger.debug(f"Cache set error for key {key}: {e}")
-            return False
+            logger.debug(f"Redis set error for key {key}, falling back to memory: {e}")
+            self.use_memory_cache = True
+            return memory_cache.set(key, value, ttl)
     
     def delete(self, key: str) -> bool:
         """
@@ -113,15 +131,19 @@ class CacheService:
         Returns:
             True if deleted, False otherwise
         """
-        if not self.is_available():
+        if self.use_memory_cache:
+            return memory_cache.delete(key)
+        
+        if not self.redis_client:
             return False
         
         try:
             result = self.redis_client.delete(key)
             return result > 0
         except Exception as e:
-            logger.debug(f"Cache delete error for key {key}: {e}")
-            return False
+            logger.debug(f"Redis delete error for key {key}, falling back to memory: {e}")
+            self.use_memory_cache = True
+            return memory_cache.delete(key)
     
     def delete_pattern(self, pattern: str) -> int:
         """
@@ -133,7 +155,10 @@ class CacheService:
         Returns:
             Number of keys deleted
         """
-        if not self.is_available():
+        if self.use_memory_cache:
+            return memory_cache.delete_pattern(pattern)
+        
+        if not self.redis_client:
             return 0
         
         try:
@@ -142,8 +167,9 @@ class CacheService:
                 return self.redis_client.delete(*keys)
             return 0
         except Exception as e:
-            logger.debug(f"Cache delete pattern error for {pattern}: {e}")
-            return 0
+            logger.debug(f"Redis delete pattern error for {pattern}, falling back to memory: {e}")
+            self.use_memory_cache = True
+            return memory_cache.delete_pattern(pattern)
     
     # Specific cache methods for different data types
     
@@ -249,13 +275,23 @@ class CacheService:
         Returns:
             Dictionary with cache stats
         """
-        if not self.is_available():
+        if self.use_memory_cache:
+            stats = memory_cache.stats()
+            return {
+                "available": True,
+                "cache_type": "memory",
+                "total_keys": stats.get("total_keys", 0),
+                "message": "Using in-memory cache (Redis not available)"
+            }
+        
+        if not self.redis_client:
             return {"available": False}
         
         try:
             info = self.redis_client.info()
             return {
                 "available": True,
+                "cache_type": "redis",
                 "used_memory_human": info.get("used_memory_human"),
                 "connected_clients": info.get("connected_clients"),
                 "total_keys": self.redis_client.dbsize(),
@@ -263,8 +299,15 @@ class CacheService:
                 "price_keys": len(self.redis_client.keys("price:*")),
             }
         except Exception as e:
-            logger.error(f"Failed to get cache stats: {e}")
-            return {"available": False, "error": str(e)}
+            logger.error(f"Failed to get Redis stats, falling back to memory: {e}")
+            self.use_memory_cache = True
+            stats = memory_cache.stats()
+            return {
+                "available": True,
+                "cache_type": "memory",
+                "total_keys": stats.get("total_keys", 0),
+                "message": "Using in-memory cache (Redis error)"
+            }
 
 
 # Create singleton instance
