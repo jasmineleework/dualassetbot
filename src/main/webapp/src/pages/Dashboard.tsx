@@ -133,7 +133,11 @@ const Dashboard: React.FC = () => {
         // Still try to get mock products
         try {
           const productsRes = await apiService.getDualInvestmentProducts();
-          setProducts(productsRes);
+          if (Array.isArray(productsRes)) {
+            setProducts(productsRes);
+          } else if ('products' in productsRes && productsRes.products) {
+            setProducts(productsRes.products);
+          }
         } catch (e) {
           // Ignore products error
         }
@@ -160,12 +164,16 @@ const Dashboard: React.FC = () => {
       
       if (results[2].status === 'fulfilled') {
         const productsResponse = results[2].value;
-        if (productsResponse.products) {
+        if ('products' in productsResponse && productsResponse.products) {
           setProducts(productsResponse.products);
           setProductsError(productsResponse.message || null);
-        } else {
+        } else if (Array.isArray(productsResponse)) {
           // Old format compatibility
-          setProducts(Array.isArray(productsResponse) ? productsResponse : []);
+          setProducts(productsResponse);
+          setProductsError(null);
+        } else {
+          setProducts([]);
+          setProductsError('products' in productsResponse ? productsResponse.message || '暂无可用产品' : '暂无可用产品');
         }
       } else {
         setProducts([]);

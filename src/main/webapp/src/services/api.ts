@@ -217,7 +217,7 @@ class ApiService {
   }
 
   // Dual Investment
-  async getDualInvestmentProducts(): Promise<DualInvestmentProduct[]> {
+  async getDualInvestmentProducts(): Promise<{products?: DualInvestmentProduct[], message?: string} | DualInvestmentProduct[]> {
     return this.fetchJson('/api/v1/dual-investment/products');
   }
 

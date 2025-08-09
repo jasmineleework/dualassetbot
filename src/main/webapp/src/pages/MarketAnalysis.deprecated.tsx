@@ -129,7 +129,10 @@ const MarketAnalysisPage: React.FC = () => {
       }
       
       if (results[2].status === 'fulfilled') {
-        setProducts(results[2].value.filter(p => 
+        const productsData = results[2].value;
+        const productsArray = Array.isArray(productsData) ? productsData : 
+                            ('products' in productsData && productsData.products) ? productsData.products : [];
+        setProducts(productsArray.filter(p => 
           p.asset === selectedSymbol.replace('USDT', '') || 
           p.currency === selectedSymbol.replace('USDT', '')
         ));
