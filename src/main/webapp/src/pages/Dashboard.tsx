@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs, message, Descriptions, Empty } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Button, Space, Spin, Alert, Typography, Badge, Select, Tooltip, Modal, Progress, Divider, Tabs, message, Descriptions, Empty, Switch } from 'antd';
 import { 
   SyncOutlined,
   ArrowUpOutlined,
@@ -79,6 +79,7 @@ const Dashboard: React.FC = () => {
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [chartImage, setChartImage] = useState<string | null>(null);
   const [chartSource, setChartSource] = useState<string | null>(null);
+  const [enableAI, setEnableAI] = useState<boolean>(true); // Enable AI analysis by default
   
   // WebSocket hooks for real-time data
   const { prices: realtimePrices } = usePriceUpdates([selectedPair]);
@@ -235,7 +236,7 @@ const Dashboard: React.FC = () => {
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8081';
       const params = new URLSearchParams();
-      params.append('include_ai', 'false'); // Disable AI analysis by default (too slow)
+      params.append('include_ai', enableAI ? 'true' : 'false'); // Use user preference for AI analysis
       params.append('include_chart', 'true');
       if (forceRefresh) {
         params.append('force_refresh', 'true');
@@ -844,10 +845,26 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
       {/* Analysis Report Modal */}
       <Modal
         title={
-          <Space>
-            <FileSearchOutlined />
-            <span>Professional Market Analysis Report</span>
-          </Space>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Space>
+              <FileSearchOutlined />
+              <span>Professional Market Analysis Report</span>
+            </Space>
+            <Space>
+              <span style={{ fontSize: 14, fontWeight: 'normal' }}>AI Analysis</span>
+              <Switch 
+                checked={enableAI} 
+                onChange={(checked) => {
+                  setEnableAI(checked);
+                  if (checked) {
+                    message.info('AI analysis enabled - may take up to 30 seconds');
+                  }
+                }}
+                checkedChildren="ON"
+                unCheckedChildren="OFF"
+              />
+            </Space>
+          </div>
         }
         visible={analysisModalVisible}
         onCancel={() => setAnalysisModalVisible(false)}
@@ -864,7 +881,10 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
         {generatingReport ? (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <Spin size="large" />
-            <p style={{ marginTop: 16 }}>Generating professional analysis report...</p>
+            <p style={{ marginTop: 16 }}>
+              Generating professional analysis report...
+              {enableAI && <><br/><small style={{ color: '#999' }}>AI analysis may take up to 30 seconds</small></>}
+            </p>
           </div>
         ) : (
           <Tabs defaultActiveKey="analysis">
