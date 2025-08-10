@@ -48,8 +48,8 @@ npm run build
 ### 环境变量配置
 创建 `.env` 文件：
 ```
-REACT_APP_API_URL=http://localhost:8081
-REACT_APP_WS_URL=localhost:8081
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_WS_URL=localhost:8000
 REACT_APP_AUTO_CONNECT_WS=true
 ```
 

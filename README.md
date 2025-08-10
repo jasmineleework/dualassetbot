@@ -91,10 +91,12 @@ alembic upgrade head
 
 ### 运行项目
 
+> **重要**: 请查看 [PORT_CONFIG.md](PORT_CONFIG.md) 了解端口配置详情
+
 1. **启动后端服务**
 ```bash
 cd src/main/python
-uvicorn api.main:app --reload --port 8000
+uvicorn api.main:app --reload --port 8000  # 固定使用端口8000
 ```
 
 2. **启动Celery Worker（另开终端）**
@@ -110,10 +112,10 @@ celery -A src.main.python.tasks beat --loglevel=info
 4. **启动前端（另开终端）**
 ```bash
 cd src/main/webapp
-npm start
+npm start  # 将在端口3010运行（配置在.env中）
 ```
 
-访问 http://localhost:3000 即可使用系统。
+访问 http://localhost:3010 即可使用系统。
 
 ## 🔑 币安API配置
 
