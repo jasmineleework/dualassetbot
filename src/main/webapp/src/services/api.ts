@@ -2,7 +2,7 @@
  * API service for communicating with backend
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface MarketPrice {
   symbol: string;
