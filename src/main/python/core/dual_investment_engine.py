@@ -38,9 +38,29 @@ class DualInvestmentEngine:
             ticker_stats = self.binance.get_24hr_ticker_stats(symbol)
             
             # Technical analysis
-            trend = self.market_analysis.analyze_trend(df)
-            signals = self.market_analysis.get_market_signals(df)
+            trend_data = self.market_analysis.analyze_trend(df)
+            signals_data = self.market_analysis.get_market_signals(df)
             support_resistance = self.market_analysis.calculate_support_resistance(df)
+            
+            # Extract string values for trend (keep backward compatibility)
+            trend = {
+                'trend': trend_data.get('trend'),
+                'strength': trend_data.get('strength')
+            }
+            
+            # Extract string values for signals (keep backward compatibility)
+            signals = {
+                'rsi_signal': signals_data.get('rsi_signal'),
+                'macd_signal': signals_data.get('macd_signal'),
+                'bb_signal': signals_data.get('bb_signal'),
+                'recommendation': signals_data.get('recommendation')
+            }
+            
+            # Merge numeric indicators if needed
+            if 'indicators' in trend_data:
+                trend['indicators'] = trend_data['indicators']
+            if 'indicators' in signals_data:
+                signals['indicators'] = signals_data['indicators']
             
             # Volatility analysis
             atr = self.market_analysis.calculate_atr(df)

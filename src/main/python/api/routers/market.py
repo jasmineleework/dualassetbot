@@ -25,9 +25,9 @@ class MarketAnalysisResponse(BaseModel):
     symbol: str
     current_price: float
     price_change_24h: float
-    trend: Dict[str, str]
+    trend: Dict[str, Any]  # Changed to Any to support nested indicators dict
     volatility: Dict[str, Any]
-    signals: Dict[str, str]
+    signals: Dict[str, Any]  # Changed to Any to support nested indicators dict
     support_resistance: Dict[str, float]
     price_prediction_24h: Optional[PricePrediction] = None
     volatility_prediction: Optional[VolatilityPrediction] = None
@@ -71,7 +71,8 @@ async def get_market_analysis(symbol: str):
         
         # Add enhanced predictions
         current_price = analysis.get('current_price', 0)
-        trend = analysis.get('trend', {}).get('trend', 'NEUTRAL')
+        trend_obj = analysis.get('trend', {})
+        trend = trend_obj.get('trend', 'NEUTRAL')
         volatility_ratio = analysis.get('volatility', {}).get('volatility_ratio', 0.02)
         
         # Simple price prediction based on trend

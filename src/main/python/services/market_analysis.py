@@ -121,12 +121,15 @@ class MarketAnalysisService:
             trend = 'SIDEWAYS'
             strength = 'NEUTRAL'
         
+        # Return only string values in main dict, numeric values in separate dict
         return {
             'trend': trend,
             'strength': strength,
-            'sma_20': sma_20.iloc[-1],
-            'sma_50': sma_50.iloc[-1],
-            'current_price': current_price
+            'indicators': {  # Numeric values in a separate nested dict
+                'sma_20': float(sma_20.iloc[-1]),
+                'sma_50': float(sma_50.iloc[-1]),
+                'current_price': float(current_price)
+            }
         }
     
     @staticmethod
@@ -162,12 +165,11 @@ class MarketAnalysisService:
         current_rsi = rsi.iloc[-1]
         current_price = df['close'].iloc[-1]
         
+        # String-only signals
         signals = {
             'rsi_signal': 'OVERSOLD' if current_rsi < 30 else ('OVERBOUGHT' if current_rsi > 70 else 'NEUTRAL'),
             'macd_signal': 'BUY' if macd_data['histogram'].iloc[-1] > 0 else 'SELL',
-            'bb_signal': 'BUY' if current_price < bb_data['lower'].iloc[-1] else ('SELL' if current_price > bb_data['upper'].iloc[-1] else 'HOLD'),
-            'current_rsi': current_rsi,
-            'macd_histogram': macd_data['histogram'].iloc[-1]
+            'bb_signal': 'BUY' if current_price < bb_data['lower'].iloc[-1] else ('SELL' if current_price > bb_data['upper'].iloc[-1] else 'HOLD')
         }
         
         # Overall recommendation
@@ -193,6 +195,12 @@ class MarketAnalysisService:
             signals['recommendation'] = 'SELL'
         else:
             signals['recommendation'] = 'HOLD'
+        
+        # Add numeric indicators in a separate dict
+        signals['indicators'] = {
+            'current_rsi': float(current_rsi),
+            'macd_histogram': float(macd_data['histogram'].iloc[-1])
+        }
         
         return signals
 
