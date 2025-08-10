@@ -387,7 +387,6 @@ async def get_kline_analysis(
                 # Get dual investment products for AI analysis
                 dual_products = []
                 try:
-                    from services.binance_service import binance_service
                     from datetime import datetime, timedelta
                     all_products = binance_service.get_dual_investment_products()
                     # Filter products for this symbol and within 2 days
