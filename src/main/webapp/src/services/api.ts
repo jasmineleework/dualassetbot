@@ -172,7 +172,7 @@ export interface ScheduledTask {
 class ApiService {
   private async fetchJson<T>(url: string): Promise<T> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for complex operations
     
     try {
       // Use relative URL to work with React proxy in development

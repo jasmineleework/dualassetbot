@@ -230,12 +230,12 @@ const Dashboard: React.FC = () => {
     setAnalysisModalVisible(true);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for analysis
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for analysis (in case AI is enabled)
     
     try {
       // Use relative URL to work with React proxy
       const params = new URLSearchParams();
-      params.append('include_ai', 'true');
+      params.append('include_ai', 'false'); // Disable AI analysis by default (too slow)
       params.append('include_chart', 'true');
       if (forceRefresh) {
         params.append('force_refresh', 'true');
