@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 from datetime import datetime
 from loguru import logger
 from binance.exceptions import BinanceAPIException
+from services.time_sync_service import time_sync_service
 
 
 class DualInvestmentAPIService:
@@ -54,6 +55,9 @@ class DualInvestmentAPIService:
             # Log the request details
             logger.debug(f"Fetching dual products: {option_type} {exercised_coin}/{invest_coin} (page {page_index})")
             
+            # Ensure time is synchronized
+            time_sync_service.ensure_synced()
+            
             # Prepare parameters
             params = {
                 'optionType': option_type,
@@ -61,8 +65,8 @@ class DualInvestmentAPIService:
                 'investCoin': invest_coin,
                 'pageSize': page_size,
                 'pageIndex': page_index,
-                'timestamp': int(time.time() * 1000),
-                'recvWindow': 5000
+                'timestamp': time_sync_service.get_timestamp(),
+                'recvWindow': 10000  # Increased window for better tolerance
             }
             
             # Make the API call
@@ -93,7 +97,16 @@ class DualInvestmentAPIService:
                         f"Code={e.code}, Message={e.message}")
             
             # Handle specific error codes
-            if e.code == -2015:  # Invalid API key/secret
+            if e.code == -1021:  # Timestamp error
+                logger.warning("Timestamp sync error detected, resyncing time...")
+                time_sync_service.sync_time()
+                # Retry immediately after sync
+                if retry_count < self.max_retries - 1:
+                    return self.get_product_list(
+                        option_type, exercised_coin, invest_coin, 
+                        page_size, page_index, retry_count + 1
+                    )
+            elif e.code == -2015:  # Invalid API key/secret
                 logger.error("Invalid API credentials - please check your API key and secret")
                 return []
             elif e.code == -1121:  # Invalid symbol
@@ -171,11 +184,12 @@ class DualInvestmentAPIService:
             url = f"{base_url}{path}"
             headers = {'X-MBX-APIKEY': self.client.API_KEY}
             
-            # Make the request using requests library directly
+            # Make the request using requests library directly with timeout
+            timeout = 15  # 15 second timeout for API requests
             if method == 'GET':
-                response = requests.get(url, params=params, headers=headers)
+                response = requests.get(url, params=params, headers=headers, timeout=timeout)
             else:
-                response = requests.request(method, url, params=params, headers=headers)
+                response = requests.request(method, url, params=params, headers=headers, timeout=timeout)
             
             # Log response time
             elapsed = time.time() - start_time
