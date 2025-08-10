@@ -28,11 +28,17 @@ class AIAnalysisService:
         self.cache_ttl = int(os.getenv('AI_CACHE_TTL', '3600'))  # 1 hour default
         self.cache_enabled = os.getenv('AI_CACHE_ENABLED', 'true').lower() == 'true'
         self.enabled = bool(self.api_key)
+        self.client = None  # Initialize to None first
         
         if self.enabled:
-            self.client = anthropic.Anthropic(api_key=self.api_key)
-            logger.info(f"AI Analysis Service initialized with Claude model: {self.model}")
-            logger.info(f"Cache enabled: {self.cache_enabled}, TTL: {self.cache_ttl}s")
+            try:
+                self.client = anthropic.Anthropic(api_key=self.api_key)
+                logger.info(f"AI Analysis Service initialized with Claude model: {self.model}")
+                logger.info(f"Cache enabled: {self.cache_enabled}, TTL: {self.cache_ttl}s")
+            except Exception as e:
+                logger.error(f"Failed to initialize Anthropic client: {e}")
+                self.enabled = False
+                self.client = None
         else:
             logger.warning("AI Analysis Service disabled - no Anthropic API key configured")
     
@@ -74,7 +80,7 @@ class AIAnalysisService:
         # Check cache if enabled and not forcing refresh
         cache_key = self._get_cache_key(symbol)
         if self.cache_enabled and not force_refresh:
-            cached_analysis = await cache_service.get(cache_key)
+            cached_analysis = cache_service.get(cache_key)
             if cached_analysis:
                 logger.info(f"AI analysis cache hit for {symbol}")
                 # Add cache metadata
@@ -110,7 +116,7 @@ class AIAnalysisService:
             
             # Cache the result if caching is enabled
             if self.cache_enabled and result.get('enabled') and not result.get('error'):
-                await cache_service.set(cache_key, result, ttl=self.cache_ttl)
+                cache_service.set(cache_key, result, ttl=self.cache_ttl)
                 logger.info(f"AI analysis cached for {symbol} with TTL={self.cache_ttl}s")
             
             # Add cache metadata
