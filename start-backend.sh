@@ -41,13 +41,13 @@ fi
 
 # Start the backend server
 echo ""
-echo "🌟 Starting API server on http://localhost:8080"
+echo "🌟 Starting API server on http://localhost:8081"
 echo "============================================"
-echo "📝 API Documentation: http://localhost:8080/docs"
-echo "❤️  Health Check: http://localhost:8080/health"
+echo "📝 API Documentation: http://localhost:8081/docs"
+echo "❤️  Health Check: http://localhost:8081/health"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
 
 # Run the server
-python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8080 --reload
+python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8081 --reload

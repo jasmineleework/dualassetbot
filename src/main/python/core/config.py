@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # API
     api_host: str = "0.0.0.0"
-    api_port: int = 8080
+    api_port: int = 8081
     
     # Database
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./data/dual_asset_bot.db")

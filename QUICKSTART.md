@@ -20,7 +20,7 @@ This will start both backend and frontend automatically.
 ./start-backend.sh
 # OR manually:
 cd src/main/python
-python3 -m uvicorn api.main:app --port 8080
+python3 -m uvicorn api.main:app --port 8081
 ```
 
 #### Start Frontend (in a new terminal)
@@ -35,19 +35,19 @@ npm start
 
 Once both services are running:
 - **Frontend**: http://localhost:3010
-- **Backend API**: http://localhost:8080
-- **API Documentation**: http://localhost:8080/docs
+- **Backend API**: http://localhost:8081
+- **API Documentation**: http://localhost:8081/docs
 
 ## ⚠️ Common Issues
 
 ### "Failed to fetch" Error
 This usually means the backend is not running. Make sure:
-1. Backend is running on port 8080
+1. Backend is running on port 8081
 2. Check backend logs for any errors
-3. Verify `.env` file has `REACT_APP_API_URL=http://localhost:8080`
+3. Verify `.env` file has `REACT_APP_API_URL=http://localhost:8081`
 
 ### Port Already in Use
-If port 8080 or 3010 is already in use:
+If port 8081 or 3010 is already in use:
 - Backend: Change port in `src/main/python/core/config.py`
 - Frontend: Change port in `src/main/webapp/.env`
 
@@ -60,7 +60,7 @@ If port 8080 or 3010 is already in use:
 ### Backend Configuration
 Edit `.env` in project root:
 ```env
-API_PORT=8080
+API_PORT=8081
 DATABASE_URL=sqlite:///./data/dual_asset_bot.db
 BINANCE_USE_TESTNET=False
 ```
@@ -68,7 +68,7 @@ BINANCE_USE_TESTNET=False
 ### Frontend Configuration
 Edit `src/main/webapp/.env`:
 ```env
-REACT_APP_API_URL=http://localhost:8080
+REACT_APP_API_URL=http://localhost:8081
 PORT=3010
 ```
 
@@ -77,7 +77,7 @@ PORT=3010
 Verify services are running:
 ```bash
 # Check backend
-curl http://localhost:8080/health
+curl http://localhost:8081/health
 
 # Check frontend
 curl http://localhost:3010
@@ -88,12 +88,12 @@ curl http://localhost:3010
 1. **First Time Setup**: Run `./start-all.sh` which will install dependencies automatically
 2. **Development**: Backend auto-reloads on file changes with `--reload` flag
 3. **Logs**: Check terminal output for detailed error messages
-4. **API Testing**: Visit http://localhost:8080/docs for interactive API documentation
+4. **API Testing**: Visit http://localhost:8081/docs for interactive API documentation
 
 ## 🆘 Need Help?
 
 If you encounter issues:
 1. Check both backend and frontend terminal logs
-2. Ensure all ports are correct (8080 for backend, 3010 for frontend)
+2. Ensure all ports are correct (8081 for backend, 3010 for frontend)
 3. Verify your `.env` files are configured correctly
 4. Try restarting both services

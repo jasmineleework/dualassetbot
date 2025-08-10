@@ -233,7 +233,7 @@ const Dashboard: React.FC = () => {
     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for analysis (in case AI is enabled)
     
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8081';
       const params = new URLSearchParams();
       params.append('include_ai', 'false'); // Disable AI analysis by default (too slow)
       params.append('include_chart', 'true');

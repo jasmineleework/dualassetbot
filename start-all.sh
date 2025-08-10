@@ -20,7 +20,7 @@ trap cleanup INT TERM
 
 # Start backend in background
 echo "1️⃣  Starting Backend Server..."
-(cd src/main/python && python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8080 --reload) &
+(cd src/main/python && python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8081 --reload) &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -28,8 +28,8 @@ echo "   Waiting for backend to start..."
 sleep 5
 
 # Check if backend is running
-if curl -s http://localhost:8080/health > /dev/null; then
-    echo "   ✅ Backend started successfully on http://localhost:8080"
+if curl -s http://localhost:8081/health > /dev/null; then
+    echo "   ✅ Backend started successfully on http://localhost:8081"
 else
     echo "   ❌ Backend failed to start. Check the logs above."
     exit 1
@@ -44,8 +44,8 @@ echo ""
 echo "======================================"
 echo "✅ All services are starting..."
 echo ""
-echo "📊 Backend API: http://localhost:8080"
-echo "📝 API Docs: http://localhost:8080/docs"
+echo "📊 Backend API: http://localhost:8081"
+echo "📝 API Docs: http://localhost:8081/docs"
 echo "🌐 Frontend: http://localhost:3010"
 echo ""
 echo "Press Ctrl+C to stop all services"
