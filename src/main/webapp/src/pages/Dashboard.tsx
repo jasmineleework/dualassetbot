@@ -251,7 +251,9 @@ const Dashboard: React.FC = () => {
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for analysis
     
     try {
-      const url = new URL(`http://localhost:8081/api/v1/market/kline-analysis/${selectedPair}`);
+      const url = new URL(`http://localhost:8000/api/v1/market/kline-analysis/${selectedPair}`);
+      url.searchParams.append('include_ai', 'true');
+      url.searchParams.append('include_chart', 'true');
       if (forceRefresh) {
         url.searchParams.append('force_refresh', 'true');
       }
