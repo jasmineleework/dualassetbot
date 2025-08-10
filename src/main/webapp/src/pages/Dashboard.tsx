@@ -94,14 +94,8 @@ const Dashboard: React.FC = () => {
     
     try {
       // Pass current symbol and max_days=2 when refreshing
-      const params = new URLSearchParams();
-      params.append('symbol', selectedPair.replace('USDT', ''));
-      params.append('max_days', '2');
-      
-      const response = await fetch(`/api/v1/dual-investment/products/refresh?${params.toString()}`, {
-        method: 'POST'
-      });
-      const data = await response.json();
+      const symbol = selectedPair.replace('USDT', '');
+      const data = await apiService.refreshDualInvestmentProducts(symbol, 2);
       
       if (data.products && data.products.length > 0) {
         setProducts(data.products);
@@ -216,24 +210,12 @@ const Dashboard: React.FC = () => {
   
   // Fetch AI recommendations
   const fetchAIRecommendations = async (symbol: string) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
     try {
-      const response = await fetch(
-        `http://localhost:8081/api/v1/dual-investment/ai-recommendations/${symbol}`,
-        { signal: controller.signal }
-      );
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAiRecommendations(data.recommendations || []);
-        return data;
-      }
+      const data = await apiService.getAIRecommendations(symbol, 5);
+      setAiRecommendations(data.recommendations || []);
+      return data;
     } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      if (err.message?.includes('timeout')) {
         console.error('AI recommendations request timeout');
       } else {
         console.error('Failed to fetch AI recommendations:', err);

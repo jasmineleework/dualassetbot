@@ -226,6 +226,23 @@ class ApiService {
     return this.fetchJson(`/api/v1/dual-investment/products${query}`);
   }
 
+  async refreshDualInvestmentProducts(symbol?: string, maxDays: number = 2): Promise<{success: boolean, products: DualInvestmentProduct[], total: number, message?: string, task_id?: string}> {
+    const params = new URLSearchParams();
+    if (symbol) params.append('symbol', symbol);
+    params.append('max_days', maxDays.toString());
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/v1/dual-investment/products/refresh${query}`, {
+      method: 'POST'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+
   async analyzeDualInvestment(symbol: string) {
     return this.fetchJson(`/api/v1/dual-investment/analyze/${symbol}`);
   }
