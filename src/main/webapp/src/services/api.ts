@@ -1,8 +1,9 @@
 /**
  * API service for communicating with backend
+ * 
+ * Note: Using relative URLs to work with React's proxy in development.
+ * The proxy is configured in package.json to forward requests to http://localhost:8080
  */
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 export interface MarketPrice {
   symbol: string;
@@ -174,7 +175,9 @@ class ApiService {
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      // Use relative URL to work with React proxy in development
+      // In production, this should use the actual API URL
+      const response = await fetch(url, {
         signal: controller.signal
       });
       
@@ -232,7 +235,7 @@ class ApiService {
     params.append('max_days', maxDays.toString());
     
     const query = params.toString() ? `?${params.toString()}` : '';
-    const response = await fetch(`${API_BASE_URL}/api/v1/dual-investment/products/refresh${query}`, {
+    const response = await fetch(`/api/v1/dual-investment/products/refresh${query}`, {
       method: 'POST'
     });
     
@@ -248,7 +251,7 @@ class ApiService {
   }
 
   async subscribeToDualInvestment(productId: string, amount: number) {
-    const response = await fetch(`${API_BASE_URL}/api/v1/dual-investment/subscribe`, {
+    const response = await fetch(`/api/v1/dual-investment/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -288,7 +291,7 @@ class ApiService {
   }
 
   async executeInvestment(productId: string, amount: number): Promise<{task_id: string, status: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/trading/execute`, {
+    const response = await fetch(`/api/v1/trading/execute`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -304,7 +307,7 @@ class ApiService {
   }
 
   async cancelInvestment(investmentId: string, reason?: string): Promise<{task_id: string, status: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/trading/cancel/${investmentId}`, {
+    const response = await fetch(`/api/v1/trading/cancel/${investmentId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -324,7 +327,7 @@ class ApiService {
   }
 
   async updateTradingSettings(settings: Partial<TradingSettings>): Promise<{status: string, updated_settings: any}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/trading/settings`, {
+    const response = await fetch(`/api/v1/trading/settings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -340,7 +343,7 @@ class ApiService {
   }
 
   async triggerAutoExecution(): Promise<{task_id: string, status: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/trading/auto-execute`, {
+    const response = await fetch(`/api/v1/trading/auto-execute`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -364,7 +367,7 @@ class ApiService {
   }
 
   async triggerMarketDataUpdate(symbols?: string[]): Promise<{task_id: string, status: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/tasks/market-data/update`, {
+    const response = await fetch(`/api/v1/tasks/market-data/update`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -380,7 +383,7 @@ class ApiService {
   }
 
   async triggerAIRecommendations(symbols?: string[]): Promise<{task_id: string, status: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/tasks/ai-recommendations/generate`, {
+    const response = await fetch(`/api/v1/tasks/ai-recommendations/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -396,7 +399,7 @@ class ApiService {
   }
 
   async cancelTask(taskId: string): Promise<{status: string, message: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/tasks/cancel/${taskId}`, {
+    const response = await fetch(`/api/v1/tasks/cancel/${taskId}`, {
       method: 'DELETE',
     });
     
@@ -415,7 +418,7 @@ class ApiService {
 
   // System Monitoring
   async getSystemHealth(): Promise<{status: string, health: SystemHealth}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/tasks/health-check`, {
+    const response = await fetch(`/api/v1/tasks/health-check`, {
       method: 'POST',
     });
     
@@ -450,7 +453,7 @@ class ApiService {
   }
 
   async triggerHealthCheck(): Promise<{task_id: string, status: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/tasks/health-check`, {
+    const response = await fetch(`/api/v1/tasks/health-check`, {
       method: 'POST',
     });
     
