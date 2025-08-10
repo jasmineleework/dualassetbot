@@ -233,7 +233,7 @@ const Dashboard: React.FC = () => {
     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for analysis (in case AI is enabled)
     
     try {
-      // Use relative URL to work with React proxy
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
       const params = new URLSearchParams();
       params.append('include_ai', 'false'); // Disable AI analysis by default (too slow)
       params.append('include_chart', 'true');
@@ -241,7 +241,7 @@ const Dashboard: React.FC = () => {
         params.append('force_refresh', 'true');
       }
       
-      const response = await fetch(`/api/v1/market/kline-analysis/${selectedPair}?${params.toString()}`, { signal: controller.signal });
+      const response = await fetch(`${apiUrl}/api/v1/market/kline-analysis/${selectedPair}?${params.toString()}`, { signal: controller.signal });
       clearTimeout(timeoutId);
       
       if (response.ok) {
