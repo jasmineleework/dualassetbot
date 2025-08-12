@@ -1036,13 +1036,33 @@ Based on current market conditions, ${marketAnalysis?.signals?.recommendation ==
                         <Col span={12}>
                           <Card size="small" title="支撑阻力位" bordered={false}>
                             <div style={{ marginBottom: 8 }}>
-                              <Text type="secondary">支撑位: </Text>
+                              <Text type="secondary">主要支撑: </Text>
                               <Text strong>${reportData?.technical_analysis?.support_resistance?.support?.toLocaleString() || '计算中'}</Text>
                             </div>
-                            <div>
-                              <Text type="secondary">阻力位: </Text>
+                            {reportData?.technical_analysis?.support_resistance?.support_levels && reportData.technical_analysis.support_resistance.support_levels.length > 0 && (
+                              <div style={{ marginBottom: 8 }}>
+                                <Text type="secondary" style={{ fontSize: 12 }}>支撑位: </Text>
+                                {reportData.technical_analysis.support_resistance.support_levels.map((level: number, idx: number) => (
+                                  <Tag key={idx} color="green" style={{ fontSize: 11, marginRight: 4 }}>
+                                    ${level.toLocaleString()}
+                                  </Tag>
+                                ))}
+                              </div>
+                            )}
+                            <div style={{ marginBottom: 8 }}>
+                              <Text type="secondary">主要阻力: </Text>
                               <Text strong>${reportData?.technical_analysis?.support_resistance?.resistance?.toLocaleString() || '计算中'}</Text>
                             </div>
+                            {reportData?.technical_analysis?.support_resistance?.resistance_levels && reportData.technical_analysis.support_resistance.resistance_levels.length > 0 && (
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 12 }}>阻力位: </Text>
+                                {reportData.technical_analysis.support_resistance.resistance_levels.map((level: number, idx: number) => (
+                                  <Tag key={idx} color="red" style={{ fontSize: 11, marginRight: 4 }}>
+                                    ${level.toLocaleString()}
+                                  </Tag>
+                                ))}
+                              </div>
+                            )}
                           </Card>
                         </Col>
                       </Row>

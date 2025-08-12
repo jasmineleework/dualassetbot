@@ -479,24 +479,29 @@ class AIAnalysisService:
         try:
             # Try to extract prices mentioned as support/resistance
             # Look for patterns like "支撑位：$XXX" or "support at $XXX"
-            support_pattern = r'(?:支撑|support)[^$]*?\$?([\d,]+\.?\d*)'
-            resistance_pattern = r'(?:阻力|压力|resistance)[^$]*?\$?([\d,]+\.?\d*)'
+            # Improved pattern to match price values (at least 3 digits)
+            support_pattern = r'(?:支撑位?|support)[\s：:]*?\$?([\d,]+(?:\.\d+)?)'
+            resistance_pattern = r'(?:阻力位?|压力位?|resistance)[\s：:]*?\$?([\d,]+(?:\.\d+)?)'
             
             support_matches = re.findall(support_pattern, text, re.IGNORECASE)
             resistance_matches = re.findall(resistance_pattern, text, re.IGNORECASE)
             
             # Convert to float and clean up
-            for match in support_matches[:3]:  # Take top 3
+            for match in support_matches[:5]:  # Take up to 5 candidates
                 try:
                     price = float(match.replace(',', ''))
-                    result['support_levels'].append(price)
+                    # Filter out unreasonable values (must be > 1000 for crypto prices)
+                    if price > 1000 and len(result['support_levels']) < 3:
+                        result['support_levels'].append(price)
                 except:
                     pass
             
-            for match in resistance_matches[:3]:  # Take top 3
+            for match in resistance_matches[:5]:  # Take up to 5 candidates
                 try:
                     price = float(match.replace(',', ''))
-                    result['resistance_levels'].append(price)
+                    # Filter out unreasonable values (must be > 1000 for crypto prices)
+                    if price > 1000 and len(result['resistance_levels']) < 3:
+                        result['resistance_levels'].append(price)
                 except:
                     pass
             
