@@ -372,6 +372,9 @@ class DualInvestmentEngine:
                 logger.warning(f"No dual investment products found for {asset}")
                 return []
             
+            # Create product lookup map for quick access
+            product_map = {p['id']: p for p in relevant_products}
+            
             # Use strategy manager for batch analysis
             recommendations = []
             
@@ -411,6 +414,9 @@ class DualInvestmentEngine:
                     except Exception as db_error:
                         logger.warning(f"Failed to log decision to database: {db_error}")
                     
+                    # Get full product details
+                    product_details = product_map.get(decision.product_id, {})
+                    
                     # Format recommendation
                     recommendation_level = self._get_recommendation_level(decision)
                     
@@ -427,7 +433,8 @@ class DualInvestmentEngine:
                         'strategy_signals': result.get('strategy_signals', {}),
                         'ensemble_signal': result.get('ensemble_signal'),
                         'market_analysis': market_data,
-                        'metadata': decision.metadata
+                        'metadata': decision.metadata,
+                        'product_details': product_details  # Add full product information
                     })
                     
                 except Exception as e:

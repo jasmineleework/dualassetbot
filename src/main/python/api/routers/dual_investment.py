@@ -252,3 +252,140 @@ async def get_ai_recommendations(
     except Exception as e:
         logger.error(f"Failed to get AI recommendations for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/recommendations-detailed/{symbol}")
+async def get_detailed_recommendations(
+    symbol: str,
+    limit: int = Query(5, ge=1, le=20, description="Maximum number of recommendations"),
+    strategy_type: Optional[str] = Query(None, description="Filter by strategy type (BUY_LOW or SELL_HIGH)")
+):
+    """
+    Get detailed AI-powered investment recommendations with structured product information
+    
+    Returns comprehensive analysis including:
+    - Product details (APY, strike price, settlement date)
+    - AI analysis scores and recommendations
+    - Market context and trends
+    - Investment decision rationale
+    """
+    try:
+        # Get AI recommendations with product details
+        recommendations = dual_investment_engine.get_ai_recommendations(symbol.upper(), limit * 2)  # Get more to filter
+        
+        # Convert numpy types
+        recommendations = convert_numpy_types(recommendations)
+        
+        # Structure and enhance the recommendations
+        structured_recommendations = []
+        
+        for rec in recommendations:
+            product = rec.get('product_details', {})
+            
+            # Skip if strategy type filter is applied and doesn't match
+            if strategy_type and product.get('type') != strategy_type:
+                continue
+            
+            # Calculate price distance
+            current_price = rec.get('market_analysis', {}).get('current_price', 0)
+            strike_price = product.get('strike_price', 0)
+            price_distance = 0
+            if current_price and strike_price:
+                price_distance = (strike_price - current_price) / current_price
+            
+            # Structure the recommendation
+            structured_rec = {
+                'product_id': rec['product_id'],
+                'strategy_type': product.get('type', 'UNKNOWN'),
+                
+                # Product Information
+                'product_info': {
+                    'asset': product.get('asset', ''),
+                    'currency': product.get('currency', 'USDT'),
+                    'apy': f"{product.get('apy', 0) * 100:.2f}%",
+                    'apy_value': product.get('apy', 0),
+                    'strike_price': product.get('strike_price', 0),
+                    'current_price': current_price,
+                    'price_distance': f"{price_distance * 100:.2f}%",
+                    'price_distance_value': price_distance,
+                    'settlement_date': product.get('settlement_date', ''),
+                    'term_days': product.get('term_days', 0),
+                    'min_amount': product.get('min_amount', 0),
+                    'max_amount': product.get('max_amount', 0),
+                    'can_purchase': product.get('can_purchase', False)
+                },
+                
+                # AI Analysis
+                'ai_analysis': {
+                    'ai_score': round(rec['ai_score'], 3),
+                    'recommendation': rec['recommendation'],
+                    'expected_return': f"{rec['expected_return'] * 100:.2f}%",
+                    'expected_return_value': rec['expected_return'],
+                    'exercise_probability': f"{rec.get('metadata', {}).get('exercise_probability', 0) * 100:.1f}%",
+                    'risk_score': rec['risk_score'],
+                    'ensemble_signal': rec.get('ensemble_signal', 'NEUTRAL')
+                },
+                
+                # Investment Decision
+                'investment_decision': {
+                    'should_invest': rec['should_invest'],
+                    'suggested_amount': rec['amount'],
+                    'reasons': rec['reasons'],
+                    'warnings': rec.get('warnings', [])
+                },
+                
+                # Market Context
+                'market_context': {
+                    'trend': rec.get('market_analysis', {}).get('trend', {}).get('trend', 'NEUTRAL'),
+                    'trend_strength': rec.get('market_analysis', {}).get('trend', {}).get('strength', 0),
+                    'volatility': rec.get('market_analysis', {}).get('volatility', {}).get('risk_level', 'MEDIUM'),
+                    'support': rec.get('market_analysis', {}).get('support_resistance', {}).get('support', 0),
+                    'resistance': rec.get('market_analysis', {}).get('support_resistance', {}).get('resistance', 0),
+                    'volume_trend': rec.get('market_analysis', {}).get('volume_analysis', {}).get('obv_trend', 'NEUTRAL'),
+                    'price_change_24h': rec.get('market_analysis', {}).get('price_change_24h', 0)
+                },
+                
+                # Technical Indicators Summary
+                'technical_summary': {
+                    'rsi_signal': rec.get('market_analysis', {}).get('signals', {}).get('rsi_signal', 'NEUTRAL'),
+                    'macd_signal': rec.get('market_analysis', {}).get('signals', {}).get('macd_signal', 'NEUTRAL'),
+                    'bb_signal': rec.get('market_analysis', {}).get('signals', {}).get('bb_signal', 'NEUTRAL'),
+                    'overall_signal': rec.get('market_analysis', {}).get('signals', {}).get('recommendation', 'NEUTRAL')
+                }
+            }
+            
+            structured_recommendations.append(structured_rec)
+            
+            # Stop if we have enough recommendations
+            if len(structured_recommendations) >= limit:
+                break
+        
+        # Sort by AI score (highest first)
+        structured_recommendations.sort(key=lambda x: x['ai_analysis']['ai_score'], reverse=True)
+        
+        # Categorize recommendations
+        strong_buy = [r for r in structured_recommendations if r['ai_analysis']['recommendation'] == 'STRONG_BUY']
+        buy = [r for r in structured_recommendations if r['ai_analysis']['recommendation'] == 'BUY']
+        consider = [r for r in structured_recommendations if r['ai_analysis']['recommendation'] == 'CONSIDER']
+        
+        return {
+            'symbol': symbol.upper(),
+            'timestamp': datetime.now().isoformat(),
+            'summary': {
+                'total_recommendations': len(structured_recommendations),
+                'strong_buy_count': len(strong_buy),
+                'buy_count': len(buy),
+                'consider_count': len(consider),
+                'average_ai_score': round(sum(r['ai_analysis']['ai_score'] for r in structured_recommendations) / len(structured_recommendations), 3) if structured_recommendations else 0,
+                'average_apy': round(sum(r['product_info']['apy_value'] for r in structured_recommendations) / len(structured_recommendations) * 100, 2) if structured_recommendations else 0
+            },
+            'recommendations': structured_recommendations,
+            'categories': {
+                'strong_buy': strong_buy[:2],  # Top 2 strong buy
+                'buy': buy[:3],  # Top 3 buy
+                'consider': consider[:2]  # Top 2 consider
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get detailed recommendations for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -582,76 +582,94 @@ class AIAnalysisService:
         }
         
         try:
-            # Extract product ID mentions
-            product_id_pattern = r'(?:Product ID|产品ID|ID)[:\s]*([A-Z0-9\-]+)'
+            # Extract product ID mentions - updated pattern for numeric IDs
+            product_id_pattern = r'(?:推荐产品|Product ID|产品ID|产品)[：:\s]*(\d{7})'
             product_ids = re.findall(product_id_pattern, text, re.IGNORECASE)
             
             # Extract recommendations for BUY_LOW
-            if any(word in text for word in ['BUY_LOW', 'BUY LOW', '低买', 'BUYLOW']):
-                buy_low_match = re.search(
-                    r'BUY[_\s]?LOW.*?(?:推荐|建议|recommend).*?(\d+)%',
+            if 'BUY_LOW' in text or 'USDT持有者' in text:
+                result['usdt_strategy']['recommend'] = True
+                
+                # Extract product ID for BUY_LOW section
+                buy_low_section = re.search(
+                    r'(?:USDT持有者|BUY_LOW).*?推荐产品[：:]\s*(\d{7})',
                     text, re.IGNORECASE | re.DOTALL
                 )
-                if buy_low_match:
-                    result['usdt_strategy']['recommend'] = True
-                    result['usdt_strategy']['position_size'] = int(buy_low_match.group(1))
+                if buy_low_section:
+                    result['usdt_strategy']['product_id'] = buy_low_section.group(1)
+                
+                # Extract position size
+                position_match = re.search(
+                    r'(?:USDT持有者|BUY_LOW).*?仓位[：:]\s*(\d+)%',
+                    text, re.IGNORECASE | re.DOTALL
+                )
+                if position_match:
+                    result['usdt_strategy']['position_size'] = int(position_match.group(1))
                 
                 # Extract confidence
-                if any(word in text for word in ['高置信', 'high confidence', '强烈推荐']):
-                    result['usdt_strategy']['confidence'] = 'high'
-                elif any(word in text for word in ['低置信', 'low confidence', '谨慎']):
-                    result['usdt_strategy']['confidence'] = 'low'
-                
-                # Extract specific product ID for BUY_LOW
-                for pid in product_ids:
-                    if 'BUYLOW' in pid or 'BUY-LOW' in pid:
-                        result['usdt_strategy']['product_id'] = pid
-                        break
+                confidence_match = re.search(
+                    r'(?:USDT持有者|BUY_LOW).*?信心度[：:]\s*(高|中|低|high|medium|low)',
+                    text, re.IGNORECASE | re.DOTALL
+                )
+                if confidence_match:
+                    conf = confidence_match.group(1).lower()
+                    if conf in ['高', 'high']:
+                        result['usdt_strategy']['confidence'] = 'high'
+                    elif conf in ['低', 'low']:
+                        result['usdt_strategy']['confidence'] = 'low'
+                    else:
+                        result['usdt_strategy']['confidence'] = 'medium'
             
             # Extract recommendations for SELL_HIGH
-            if any(word in text for word in ['SELL_HIGH', 'SELL HIGH', '高卖', 'SELLHIGH']):
-                sell_high_match = re.search(
-                    r'SELL[_\s]?HIGH.*?(?:推荐|建议|recommend).*?(\d+)%',
+            if 'SELL_HIGH' in text or 'BTC持有者' in text or '持币策略' in text:
+                result['coin_strategy']['recommend'] = True
+                
+                # Extract product ID for SELL_HIGH section
+                sell_high_section = re.search(
+                    r'(?:BTC持有者|SELL_HIGH|持币策略).*?推荐产品[：:]\s*(\d{7})',
                     text, re.IGNORECASE | re.DOTALL
                 )
-                if sell_high_match:
-                    result['coin_strategy']['recommend'] = True
-                    result['coin_strategy']['position_size'] = int(sell_high_match.group(1))
+                if sell_high_section:
+                    result['coin_strategy']['product_id'] = sell_high_section.group(1)
+                
+                # Extract position size
+                position_match = re.search(
+                    r'(?:BTC持有者|SELL_HIGH|持币策略).*?仓位[：:]\s*(\d+)%',
+                    text, re.IGNORECASE | re.DOTALL
+                )
+                if position_match:
+                    result['coin_strategy']['position_size'] = int(position_match.group(1))
                 
                 # Extract confidence
-                if any(word in text for word in ['高置信', 'high confidence', '强烈推荐']):
-                    result['coin_strategy']['confidence'] = 'high'
-                elif any(word in text for word in ['低置信', 'low confidence', '谨慎']):
-                    result['coin_strategy']['confidence'] = 'low'
-                
-                # Extract specific product ID for SELL_HIGH
-                for pid in product_ids:
-                    if 'SELLHIGH' in pid or 'SELL-HIGH' in pid:
-                        result['coin_strategy']['product_id'] = pid
-                        break
+                confidence_match = re.search(
+                    r'(?:BTC持有者|SELL_HIGH|持币策略).*?信心度[：:]\s*(高|中|低|high|medium|low)',
+                    text, re.IGNORECASE | re.DOTALL
+                )
+                if confidence_match:
+                    conf = confidence_match.group(1).lower()
+                    if conf in ['高', 'high']:
+                        result['coin_strategy']['confidence'] = 'high'
+                    elif conf in ['低', 'low']:
+                        result['coin_strategy']['confidence'] = 'low'
+                    else:
+                        result['coin_strategy']['confidence'] = 'medium'
             
-            # Parse product recommendations from structured text
-            # Look for patterns like "产品ID: XXX ... 推荐/观望/不推荐"
-            product_blocks = re.findall(
-                r'Product ID[:\s]*([^\n]+).*?(?:推荐|观望|不推荐)',
-                text, re.IGNORECASE | re.DOTALL
-            )
+            # Add extracted products to the product lists
+            if result['usdt_strategy']['product_id']:
+                result['buy_low_products'].append({
+                    'product_id': result['usdt_strategy']['product_id'],
+                    'recommendation': '推荐',
+                    'position_size': result['usdt_strategy']['position_size'],
+                    'confidence': result['usdt_strategy']['confidence']
+                })
             
-            for block in product_blocks:
-                if 'BUYLOW' in block or 'BUY-LOW' in block:
-                    recommendation = '推荐' if '推荐' in block and '不推荐' not in block else '观望'
-                    result['buy_low_products'].append({
-                        'product_id': block.strip(),
-                        'recommendation': recommendation,
-                        'confidence': result['usdt_strategy']['confidence']
-                    })
-                elif 'SELLHIGH' in block or 'SELL-HIGH' in block:
-                    recommendation = '推荐' if '推荐' in block and '不推荐' not in block else '观望'
-                    result['sell_high_products'].append({
-                        'product_id': block.strip(),
-                        'recommendation': recommendation,
-                        'confidence': result['coin_strategy']['confidence']
-                    })
+            if result['coin_strategy']['product_id']:
+                result['sell_high_products'].append({
+                    'product_id': result['coin_strategy']['product_id'],
+                    'recommendation': '推荐',
+                    'position_size': result['coin_strategy']['position_size'],
+                    'confidence': result['coin_strategy']['confidence']
+                })
                     
         except Exception as e:
             logger.debug(f"Error extracting dual recommendations: {e}")
